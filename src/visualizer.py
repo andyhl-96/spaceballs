@@ -1,4 +1,4 @@
-from turtle import update
+from turtle import mainloop, update
 import numpy as np
 import open3d as o3d
 import time
@@ -142,11 +142,11 @@ def update_dynamics(dynam_new):
         for j in range(1, 4):
             Body.dynamics_matrix[i, j] = bodypos[j - 1]
 
-def run_viz(pfunc, N, size, color_random, mass):
+def run_viz(pfunc, N, size, color_random, mass, bounds):
     dt = 0.001
     global vis
     # N = 50
-    placement_range = 15
+    placement_range = 10
     # create_sphere([1, 0, 0], 0.5, [1, 0, 0], 2, exclude = False)
     # create_sphere([0, 1, 0], 0.5, [0, 0, 1], 0.5, exclude=False)
     # create_sphere([0, 0, 1], 0.5, [0, 1, 0], 1, exclude=False)
@@ -154,7 +154,23 @@ def run_viz(pfunc, N, size, color_random, mass):
     for index in range(N):
         color = [np.random.random(), np.random.random(), np.random.random()] if color_random else [1, 0, 0]
         create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, mass, exclude=False)
-    create_box([5, 0, -5], 10, 10, 0.1, [1, 1, 1], 1000000, exclude=True)
+    zarr = o3d.geometry.TriangleMesh.create_arrow(0.1, 0.2, 4, 0.4)
+    zarr.paint_uniform_color([0, 0, 1])
+    vis.add_geometry(zarr)
+
+    yarr = o3d.geometry.TriangleMesh.create_arrow(0.1, 0.2, 4, 0.4)
+    yarr.rotate(np.array([[1, 0, 0],
+                          [0, 0, 1],
+                          [0, -1, 0]]), center=[0, 0, 0])
+    yarr.paint_uniform_color([0, 1, 0])
+    vis.add_geometry(yarr)
+
+    xarr = o3d.geometry.TriangleMesh.create_arrow(0.1, 0.2, 4, 0.4)
+    xarr.paint_uniform_color([1, 0, 0])
+    xarr.rotate(np.array([[0, 0, 1],
+                          [0, 1, 0],
+                          [-1, 0, 0]]), center=[0, 0, 0])
+    vis.add_geometry(xarr)
 
     # pfunc = "0.5*75*x**2+0.5*50*y**2+0.5*100*z**2"
     # pfunc = "m*9.8*y"
@@ -164,10 +180,10 @@ def run_viz(pfunc, N, size, color_random, mass):
     ## main loop ##
     while True:
         update_viewport()
-        collisions, _ = check_collision()
+        collisions, _, _ = check_collision(bounds)
         # get updated mass, positions, momentums
 
-        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, size * (-1 + 2* np.random.random((N + 1,3))), 1)
+        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, size * (-1 + 2* np.random.random((N,3))), 1, bounds)
 
         vis.poll_events()
         vis.update_renderer()
@@ -192,17 +208,18 @@ def run_viz(pfunc, N, size, color_random, mass):
     vis.destroy_window()
 
 class SimulationGUI:
-    def init(self, master):
+    def __init__(self, master):
         self.master = master
         self.master.title("Simulation Setup")
 
         # Store variables for the simulation
         self.variables = {
-            "N": 50,  # Number of objects
-            "ball_size": 0.05,  # Default ball size
-            "pfunc": "0.575x2+0.550y2+0.5100z**2",  # Default potential function
+            "N": 5,  # Number of objects
+            "ball_size": 0.5,  # Default ball size
+            "pfunc": "m*98*y",  # Default potential function
             "color_random": True,  # Color is random by default
-            "ball_mass": 1  # Default ball mass
+            "ball_mass": 1,  # Default ball mass
+            "bounds": "-10, 10, -10, 10, -10, 10" # bounds
         }
 
         # Setup GUI elements
@@ -244,29 +261,40 @@ class SimulationGUI:
         self.mass_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_mass"]))
         self.mass_entry.grid(row=5, column=1)
 
+        # bounds
+        self.bounds_label = tk.Label(self.master, text="Bounds (xlb,xub,ylb,yub,zlb,zub)")
+        self.bounds_label.grid(row=6, column=0, sticky="e", padx=10)
+        self.bounds_entry = tk.Entry(self.master, width=40, textvariable=tk.StringVar(value=self.variables["bounds"]))
+        self.bounds_entry.grid(row=6, column=1)
+        
         # "Start Simulation" Button
         self.start_button = tk.Button(self.master, text="Start Simulation", command=self.start_simulation)
-        self.start_button.grid(row=6, columnspan=2, pady=20)
+        self.start_button.grid(row=7, columnspan=2, pady=20)
 
     def start_simulation(self):
         # Save inputs to variables
         self.variables["N"] = int(self.n_entry.get())
         self.variables["ball_size"] = float(self.size_entry.get())
         self.variables["pfunc"] = self.pfunc_entry.get()
-        self.variables["color_random"] = self.color_check.var.get()
+        self.variables["color_random"] = self.color_var.get()
         self.variables["ball_mass"] = float(self.mass_entry.get())
+        bounds_str = self.bounds_entry.get()
+        # change bounds to a 6 tuple
+        bounds_list = bounds_str.split(',')
+        for i in range(len(bounds_list)):
+            bounds_list[i] = float(bounds_list[i])
+        self.variables["bounds"] = tuple(bounds_list)
 
         # Close the setup window
         self.master.quit()
+        self.master.destroy()
 
 def main():
     root = tk.Tk()
     app = SimulationGUI(root)
     root.mainloop()  # Run the GUI event loop
-
     if app.variables["N"] and app.variables["pfunc"]:
-        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_mass"])
+        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_mass"], app.variables["bounds"])
 
 if __name__ == "__main__":
-    #threading.Thread(target=main).start()
     main()

@@ -2,7 +2,7 @@ import numpy as np
 import sympy as sp
 from collision import check_collision
 
-def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: np.ndarray, e: float):
+def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: np.ndarray, e: float, bounds: tuple):
     m_vec = data_matrix[:,0] # Reading mass of every object
 
     x_vec = data_matrix[:,1] # Reading x center of mass potions of every object
@@ -69,7 +69,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dpy = np.zeros((n,1))
     dpz = np.zeros((n,1))
 
-    collision_matrix, collision_vectors = check_collision()
+    collision_matrix, collision_vectors, collision_walls = check_collision(bounds)
 
     # px_vec = px_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,0]
     # py_vec = py_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
