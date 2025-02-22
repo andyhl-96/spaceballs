@@ -71,14 +71,16 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
 
     collision_matrix,collision_vectors = check_collision()
 
-
+    px_vec = px_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,0]
+    py_vec = py_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
+    pz_vec = pz_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,2]
 
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
     dz = pz_vec/m_vec * dt # z update
-    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt + 100 * collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,0]
-    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt + 100 * collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
-    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt + 100 * collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,2]
+    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt
+    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
+    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
 
     print(dpy)
     x_vec = x_vec + dx # New x
