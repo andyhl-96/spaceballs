@@ -71,9 +71,15 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
 
     collision_matrix, collision_vectors = check_collision()
 
-    px_vec = px_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,0]
-    py_vec = py_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
-    pz_vec = pz_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,2]
+    # px_vec = px_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,0]
+    # py_vec = py_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
+    # pz_vec = pz_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,2]
+
+    dp, matrix = collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)
+
+    px_vec = matrix @ px_vec + dp[:,0]
+    py_vec = matrix @ py_vec + dp[:,1]
+    pz_vec = matrix @ pz_vec + dp[:,2]
 
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
@@ -96,7 +102,8 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     return(data_matrix_output)
 
 def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: np.ndarray,collision_vectors: np.ndarray, m_vec: np.ndarray, e: float):
-    
+    epsilon = 0.001 # See where this is used (if difference in momenta is below this the momenta are forced to be equal)
+
     p0_matrix = np.column_stack((p0x,p0y,p0z)) # Creating a matrix of momentum vectors
     num_collisions = collision_matrix @ np.ones(len(collision_matrix[:,0])) # Vector of number of collisions for each ball
     
@@ -144,8 +151,17 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
 
                 pfa_mag = (-e*m_vec[collide_partner_ind] * np.linalg.norm(p0a_perp) + m_vec[index] * (np.linalg.norm(p0a_perp)+np.linalg.norm(p0b_perp) + e*np.linalg.norm(p0b_perp))) / (m_vec[index] + m_vec[collide_partner_ind])
                 pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
-                dp_vec[index] = pfa - p0a
-                dp_vec[collide_partner_ind] = p0a - pfa
+                if abs(np.dot(p0a,perp_unit_vec) - np.dot(p0b,perp_unit_vec)) > epsilon:
+                    dp_vec[index] = pfa - p0a
+                    dp_vec[collide_partner_ind] = p0a - pfa
+                    matrix = np.eye(len(num_collisions))
+                    
+                else:
+                    dp_vec[index] = np.array([0,0,0])
+                    dp_vec[collide_partner_ind] = np.array([0,0,0])
+                    matrix = np.zeros((len(num_collisions),len(num_collisions)))
+                    matrix[index,collide_partner_ind] = 1
+                    matrix[collide_partner_ind,index] = 1
                 break
             case 2:
                 collide_partner_ind_vec = np.array([])
@@ -153,7 +169,7 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                     if(collision_matrix[index,colision_index] != 0):
                         collide_partner_ind_vec = np.append(collide_partner_ind_vec, colision_index)  # Index of ball that is being collided with
                 p0a = p0_matrix[index,:] # Momentum of ball of interest
-                p0b_vec = np.array([[p0_matrix[collide_partner_ind_vec[0],:]], [p0_matrix[collide_partner_ind_vec[1],:]]]) # Momentum of colliding ball 1
+                p0b_vec = np.array([p0_matrix[collide_partner_ind_vec,:]]) # Momentum of colliding ball 1
                 perp_unit_vec1 = collision_vectors[index, collide_partner_ind_vec[0]] # Pulling first unit vector pointing to collision location for ball of interest
                 perp_unit_vec1 = perp_unit_vec[0, 0] 
                 perp_unit_vec2 = collision_vectors[index, collide_partner_ind_vec[1]] # Pulling unit second vector pointing to collision location for ball of interest
@@ -191,13 +207,27 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
 
                 pfa_mag = (-e*mb_avg * np.linalg.norm(p0a_perp) + m_vec[index] * (np.linalg.norm(p0a_perp)+np.linalg.norm(p0b_perp) + e*np.linalg.norm(p0b_perp))) / (m_vec[index] + mb_avg)
                 pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
-                dp_vec[index] = pfa - p0a
+                if abs(np.dot(p0a,perp_unit_vec) - np.dot(p0b,perp_unit_vec)) > epsilon:
+                    dp_vec[index] = pfa - p0a
+                    # dp_vec[collide_partner_ind_vec[0]] = p0a - pfa
+                    matrix = np.eye(len(num_collisions))
+                    
+                else:
+                    dp_vec[index] = np.array([0,0,0])
+                    dp_vec[collide_partner_ind_vec[0]] = np.array([0,0,0])
+                    dp_vec[collide_partner_ind_vec[1]] = np.array([0,0,0])
+                    matrix = np.zeros(len(num_collisions),len(num_collisions))
+                    matrix[index,collide_partner_ind_vec[0]] = 1
+                    matrix[collide_partner_ind_vec[0],index] = 1
+                    matrix[index,collide_partner_ind_vec[1]] = 1
+                    matrix[collide_partner_ind_vec[1],index] = 1
                 #dp_vec[collide_partner_ind] = p0a - pfa
                 break
             case _:
                 dp_vec[index] = np.array([0,0,0])
+                matrix = np.eye(len(num_collisions))
     # debug
-    return(dp_vec)
+    return(dp_vec, matrix)
 
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
