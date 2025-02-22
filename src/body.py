@@ -8,15 +8,17 @@ class Body:
     # m, dx, dy, dz, dpx, pdy, dpz
 
     # model contains the position
-    dynamics_matrix = np.zeros((1, 7))
+    dynamics_matrix = np.zeros((0, 7))
     objects = []
 
     def __init__(self, 
+                 xyz: np.ndarray,
                  mass: float = 0,
                  charge: float = 0,
                  moment: float = 0,
                  geom = None,
                  model = None):
+        self.xyz = xyz
         self.mass = mass
         self.charge = charge
         self.moment = moment
@@ -26,6 +28,17 @@ class Body:
         self.model = model
 
         Body.objects.append(self)
+        dynamics = np.array([mass, 
+                             xyz[0], 
+                             xyz[1],
+                             xyz[2],
+                             np.random.random(),
+                             np.random.random(),
+                             np.random.random()])
+        if len(Body.dynamics_matrix) == 0:
+            Body.dynamics_matrix = np.array([dynamics])
+        else:
+            Body.dynamics_matrix = np.vstack([Body.dynamics_matrix, dynamics])
     
     def position(self):
         if self.model == None:
