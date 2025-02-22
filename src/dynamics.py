@@ -71,6 +71,8 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
 
     collision_matrix,collision_vectors = check_collision()
 
+
+
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
     dz = pz_vec/m_vec * dt # z update
@@ -87,7 +89,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     py_vec = py_vec + dpy # New py
     pz_vec = pz_vec + dpz # New pz
 
-    data_matrix_output = np.column_stack((m_vec, x_vec, y_vec, z_vec, px_vec, py_vec, pz_vec)) # Constructing output matrix
+    data_matrix_output = np.column_stack((m_vec, dx, dy, dz, px_vec, py_vec, pz_vec)) # Constructing output matrix
 
     # print(data_matrix_output)
     return(data_matrix_output)
