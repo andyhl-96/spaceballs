@@ -30,6 +30,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
             and (potential_str[index] != "5") and (potential_str[index] != "6")
             and (potential_str[index] != "7") and (potential_str[index] != "8")
             and (potential_str[index] != "9") and (potential_str[index] != "0")
+            and (potential_str[index] != "m")
            ):
             print(f"Potential function is invalid, can only depend on x,y,z and constants") 
             return(0)
@@ -55,9 +56,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dVdy = sp.diff(potential,y) # Differentiaing the potential with respect to y
     dVdz = sp.diff(potential,z) # Differentiaing the potential with respect to z
 
-    dVdx = sp.lambdify((x, y, z), dVdx, 'numpy')
-    dVdy = sp.lambdify((x, y, z), dVdy, 'numpy')
-    dVdz = sp.lambdify((x, y, z), dVdz, 'numpy')
+    dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
+    dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
+    dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
 
     dx = np.zeros((n,1))
     dy = np.zeros((n,1))
@@ -69,9 +70,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dx = px/m * dt # x update
     dy = py/m * dt # y update
     dz = pz/m * dt # z update
-    dpx = -dVdx(x_vec, y_vec, z_vec)*dt + ext_force_x*dt # + collision_matrix @ np.ones((n,1)) * collision()
-    dpy = -dVdy(x_vec, y_vec, z_vec)*dt + ext_force_y*dt
-    dpz = -dVdz(x_vec, y_vec, z_vec)*dt + ext_force_z*dt
+    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x*dt # + collision_matrix @ np.ones((n,1)) * collision()
+    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y*dt
+    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z*dt
 
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
