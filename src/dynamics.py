@@ -69,7 +69,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dpy = np.zeros((n,1))
     dpz = np.zeros((n,1))
 
-    collision_matrix,collision_vectors = check_collision()
+    collision_matrix, collision_vectors = check_collision()
 
     px_vec = px_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,0]
     py_vec = py_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
@@ -82,7 +82,6 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
     dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
 
-    print(dpy)
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
     z_vec = z_vec + dz # New z
@@ -103,8 +102,9 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
     
     dp_vec = np.zeros((len(num_collisions), 3))
 
-    for index in np.arange(0,len(num_collisions)):
+    for index in range(len(num_collisions)):
         match num_collisions[index]: 
+            # colliding with 1 other body
             case 1: 
                 collide_partner_ind = np.nonzero(collision_matrix[index,:]) # Index of ball that is being collided with
                 p0a = p0_matrix[index,:] # Momentum of ball of interest
@@ -115,25 +115,24 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                 p0b_perp = np.dot(p0b, perp_unit_vec) * perp_unit_vec# Projecting momentum in direction of collision for ball that is being collided with
                 
                 # Trying to create a vector perpendicular to perp_unit_vec
-                x_try_par = np.random.random()
-                y_try_par = np.random.random()
-                z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
-                par_unit_vec = (np.array([x_try_par,y_try_par,z_try_par])) / np.linalg.norm((np.array([x_try_par, y_try_par, z_try_par])))
+                
                 while_index = 0
-                while abs(np.dot(par_unit_vec, perp_unit_vec)) < 0.0000001:
-                    if(while_index % 3 == 0):
-                        x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
+                error = 1
+                while error > 0.0000001:
+                    if perp_unit_vec[0] != 0:
                         y_try_par = np.random.random()
                         z_try_par = np.random.random()
-                    elif(while_index % 3 == 1):
+                        x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
+                    elif perp_unit_vec[1] != 0:
                         x_try_par = np.random.random()
-                        y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
                         z_try_par = np.random.random()
-                    else:
+                        y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
+                    elif perp_unit_vec[2] != 0:
                         x_try_par = np.random.random()
                         y_try_par = np.random.random()
                         z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
                     par_unit_vec = (np.array([x_try_par, y_try_par, z_try_par])) / np.linalg.norm((np.array([x_try_par,y_try_par,z_try_par]))) # Vector Paralell to collision plane
+                    error = abs(np.dot(par_unit_vec, perp_unit_vec))
                     while_index = while_index + 1
                 par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
 
@@ -146,6 +145,7 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                 pfa_mag = (-e*m_vec[collide_partner_ind] * np.linalg.norm(p0a_perp) + m_vec[index] * (np.linalg.norm(p0a_perp)+np.linalg.norm(p0b_perp) + e*np.linalg.norm(p0b_perp))) / (m_vec[index] + m_vec[collide_partner_ind])
                 pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
                 dp_vec[index] = pfa - p0a
+                dp_vec[collide_partner_ind] = p0a - pfa
                 break
             case _:
                 dp_vec[index] = np.array([0,0,0])

@@ -18,6 +18,8 @@ vis = o3d.visualization.Visualizer()
 vis.create_window(window_name = "SIMULATION", width = 1280, height = 720)
 view_control = vis.get_view_control()
 view_control.set_zoom(100)
+render_options = vis.get_render_option()
+render_options.background_color = [0, 0, 0]
 
 
 # some helper functions
@@ -50,29 +52,34 @@ def run_viz():
     dt = 0.001
     global vis
 
-    create_sphere([4, 2, 0], 0.5, [1, 0, 0], 1, exclude = True)
+    create_sphere([4, 2, 0], 0.5, [1, 0, 0], 1, exclude = False)
     create_sphere([4, 4, 0], 0.5, [0, 0, 1], 1, exclude=False)
     create_sphere([4, 6, 0], 0.5, [0, 1, 0], 1, exclude=False)
-    create_box([5, 0, -5], 10, 10, 0.1, [0, 0, 0], 1000000, exclude=True)
+    create_sphere([4, 8, 0], 0.5, [0, 1, 0], 1, exclude=False)
+    create_box([5, 0, -5], 10, 10, 0.1, [1, 1, 1], 1000000, exclude=True)
 
-    pfunc = "m*9.8*y"
+    pfunc = "0"
 
     ## main loop ##
     while True:
         update_viewport()
         collisions, _ = check_collision()
         # get updated mass, positions, momentums
-        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.zeros((len(Body.dynamics_matrix), 3)), 1)
+        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.array([[0, 200, 0], [0, -50, 0], [0, -100, 0], [0, -50, 0], [0, 0, 0]]), 0.5)
 
         vis.poll_events()
         vis.update_renderer()
 
         for i in range(len(dynam)):
+            # only simulate if not excluded
             if not Body.objects[i].exclude:
-                vel = dynam[i, 4:7] / dynam[i, 0]
-                Body.objects[i].model.translate((vel * dt).tolist())
+                # velocity vector, already accouting for dt
+                dpos = dynam[i, 1:4]
+                Body.objects[i].model.translate((dpos).tolist())
 
+        # update the dynamics matrix to contain positions
         update_dynamics(dynam)
+        Body.objects[0].position()
 
         time.sleep(dt)
 
