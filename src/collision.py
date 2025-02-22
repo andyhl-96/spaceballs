@@ -15,23 +15,23 @@ class KDTNode:
 
 def buildKDT(maxdepth: int = 0, height: int = 0, bodies: list = []):
     if height > maxdepth or len(bodies) == 0:
-        return
+        return None
     
     # get the median position
     positions = []
     for body in bodies:
         positions.append(body.position())
     positions = np.array(positions)
-    print(positions)
     median = np.median(positions[:, 0])
 
-    root = KDTNode(maxdepth, height, bodies)
+    root = KDTNode(height % 3, height, bodies)
 
     # get subsets of bodies lt and gt median
     leftset = []
     rightset = []
     for body in bodies:
-        if body.position()[height % 3] <= median:
+        # height determines the axis to divide on
+        if body.position()[height % 3] + body.geom <= median:
             leftset.append(body)
         else:
             rightset.append(body)
@@ -43,6 +43,15 @@ def buildKDT(maxdepth: int = 0, height: int = 0, bodies: list = []):
 
     return root
 
+def print_leaves(root: KDTNode):
+    if root.left == None and root.right == None:
+        print(f"box: {root.bodies}")
+        return
+    if root.left != None:
+        print_leaves(root.left)
+    if root.right != None:
+        print_leaves(root.right)
+    
 
 def distance(body1, body2):
     return np.sqrt(np.sum(np.power(body1.position() - body2.position(), 2)))
@@ -52,7 +61,10 @@ def distance(body1, body2):
 # axis aligned box (xlb, xub, ylb, yub, zlb, zub)
 def check_collision(bounds: tuple):
     objects = Body.objects
-    #root = buildKDT(36, 0, objects)
+    # root = buildKDT(12, 0, objects)
+    # print("TREE:")
+    # print(f"ROOT: {root.bodies}")
+    # print_leaves(root)
 
 
     # matrix to see what is colliding with what
