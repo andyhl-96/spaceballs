@@ -49,7 +49,6 @@ def check_collision():
     # perform a broad phase check then narrow phase
     for i in range(len(objects) - 1):
         for j in range(i + 1, len(objects)):
-            print(distance(objects[i], objects[j]))
             if distance(objects[i], objects[j]) < (objects[i].geom + objects[j].geom):
                 collision_matrix[i, j] = 1
                 collision_matrix[j, i] = 1

@@ -87,6 +87,6 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     #print(data_matrix_output)
     return(data_matrix_output)
 
-dynamics(np.array([[1,2,3,5,3,2,1],
-                  [4,5,6,5,3,2,1],
-                  [7,8,9,5,3,2,1]]), 0.001, "x+y",np.zeros((3,3)))
+# dynamics(np.array([[1,2,3,5,3,2,1],
+#                   [4,5,6,5,3,2,1],
+#                   [7,8,9,5,3,2,1]]), 0.001, "x+y",np.zeros((3,3)))

@@ -12,11 +12,13 @@ class Body:
     objects = []
 
     def __init__(self, 
+                 xyz: np.ndarray,
                  mass: float = 0,
                  charge: float = 0,
                  moment: float = 0,
                  geom = None,
                  model = None):
+        self.xyz = xyz
         self.mass = mass
         self.charge = charge
         self.moment = moment
@@ -27,9 +29,9 @@ class Body:
 
         Body.objects.append(self)
         dynamics = np.array([mass, 
-                             np.random.random(), 
-                             np.random.random(),
-                             np.random.random(),
+                             xyz[0], 
+                             xyz[1],
+                             xyz[2],
                              np.random.random(),
                              np.random.random(),
                              np.random.random()])
