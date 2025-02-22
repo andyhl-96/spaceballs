@@ -131,7 +131,7 @@ def create_box(position: list, w: float, d: float, h: float, color: list, mass: 
     body = Body(xyz = np.array(position), mass = mass, model = box, geom = 0, exclude = exclude)
     vis.add_geometry(Body.objects[-1].model)
 
-def draw_axes():
+def draw_axes(bounds):
     zarr = o3d.geometry.TriangleMesh.create_arrow(0.1, 0.2, 4, 0.4)
     zarr.paint_uniform_color([0, 0, 1])
     vis.add_geometry(zarr)
@@ -149,6 +149,16 @@ def draw_axes():
                           [0, 1, 0],
                           [-1, 0, 0]]), center=[0, 0, 0])
     vis.add_geometry(xarr)
+
+    width=bounds[1] - bounds[0]
+    depth=bounds[5] - bounds[4]
+    height=bounds[3] - bounds[2]
+    box = o3d.geometry.TriangleMesh.create_box(width=width,
+                                                depth=depth,
+                                                height=height)
+    box.translate([-width / 2, -height / 2, -depth / 2])
+    bbox = box.get_axis_aligned_bounding_box()
+    vis.add_geometry(bbox)
 
 def update_viewport():
     for obj in Body.objects:
@@ -174,7 +184,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
         color = [np.random.random(), np.random.random(), np.random.random()] if color_random else [1, 0, 0]
         create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, np.abs(np.random.normal(avg_mass, sd_mass)), exclude=False)
     
-    draw_axes()
+    draw_axes(bounds)
 
     # pfunc = "0.5*75*x**2+0.5*50*y**2+0.5*100*z**2"
     # pfunc = "m*9.8*y"
@@ -188,7 +198,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
         collisions, _, _ = check_collision(bounds)
         # get updated mass, positions, momentums
 
-        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, size * (-1 + 2* np.random.random((N,3))), 1, bounds)
+        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, size * (-1 + 2* np.random.random((N,3))), 0.9999, bounds)
 
         vis.poll_events()
         vis.update_renderer()

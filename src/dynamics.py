@@ -20,22 +20,22 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     n = len(x_vec) # Number of objects
 
     # Lizard Testing Potential Input
-    for index in np.arange(0,len(potential_str)):
-        if((potential_str[index] != "x") and (potential_str[index] != "y") 
-           and (potential_str[index] != "z") and (potential_str[index] != "+")
-            and (potential_str[index] != "-") and (potential_str[index] != "/")
-            and (potential_str[index] != "*") and (potential_str[index] != " ")
-            and (potential_str[index] != "np.exp") and (potential_str[index] != "np.sqrt")
-            and (potential_str[index] != "1") and (potential_str[index] != "2")
-            and (potential_str[index] != "3") and (potential_str[index] != "4")
-            and (potential_str[index] != "5") and (potential_str[index] != "6")
-            and (potential_str[index] != "7") and (potential_str[index] != "8")
-            and (potential_str[index] != "9") and (potential_str[index] != "0")
-            and (potential_str[index] != "m") and (potential_str[index] != "(")
-            and (potential_str[index] != ")") and (potential_str[index] != ".")
-           ):
-            print(f"Potential function is invalid, can only depend on x,y,z and constants") 
-            return(0)
+    #for index in np.arange(0,len(potential_str)):
+        # if((potential_str[index] != "x") and (potential_str[index] != "y") 
+        #    and (potential_str[index] != "z") and (potential_str[index] != "+")
+        #     and (potential_str[index] != "-") and (potential_str[index] != "/")
+        #     and (potential_str[index] != "*") and (potential_str[index] != " ")
+        #     and (potential_str[index] != "np.exp") and (potential_str[index] != "np.sqrt")
+        #     and (potential_str[index] != "1") and (potential_str[index] != "2")
+        #     and (potential_str[index] != "3") and (potential_str[index] != "4")
+        #     and (potential_str[index] != "5") and (potential_str[index] != "6")
+        #     and (potential_str[index] != "7") and (potential_str[index] != "8")
+        #     and (potential_str[index] != "9") and (potential_str[index] != "0")
+        #     and (potential_str[index] != "m") and (potential_str[index] != "(")
+        #     and (potential_str[index] != ")") and (potential_str[index] != ".")
+        #    ):
+        #     print(f"Potential function is invalid, can only depend on x,y,z and constants") 
+        #     return(0)
     
     # x = sp.symbols(f'x:{n}')
     # y = sp.symbols(f'y:{n}')
@@ -75,7 +75,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     # py_vec = py_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,1]
     # pz_vec = pz_vec + collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)[:,2]
 
-    dp, matrix = collision_update(collision_matrix, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)
+    dp, matrix = collision_update(collision_matrix, collision_walls, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)
 
     px_vec = matrix @ px_vec + dp[:,0]
     py_vec = matrix @ py_vec + dp[:,1]
@@ -108,18 +108,29 @@ def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np
     num_collisions = collision_matrix @ np.ones(len(collision_matrix[:,0])) # Vector of number of collisions for each ball
     
     dp_vec = np.zeros((len(num_collisions), 3))
+    wall_dp_vec = np.zeros((len(num_collisions), 3))
 
     for index in range(len(num_collisions)):
         p0a = p0_matrix[index,:]
+
+        # only check collisions if ball to wall vector is non 0
         if np.linalg.norm(collision_walls[index,:]) != 0:
-            perp_unit_vec = -collision_walls / np.linalg.norm(collision_walls)
-            par_unit_vec, par_unit_vec2 = find_paralell_unit_vecs(perp_unit_vec,0.0000001)
+            # negative normal between ball and wall
+            perp_unit_vec = -collision_walls[index, :] / np.linalg.norm(collision_walls[index, :])
+            # vectors parallel to wall for plane
+            # momentum conserved in these dirs
+            par_unit_vec, par_unit_vec2 = find_paralell_unit_vecs(perp_unit_vec, 0.0000001)
+            # momentum in first parallel direction
             p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
+            # momentum in second parallel direction, both consrrvs
             p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
-            p0a_perp = np.dot(p0a,perp_unit_vec)
-            pfa_mag = -e * p0a_perp
+            # projection of momentum in perpendicular direction
+            # not conserved
+            p0a_perp = np.dot(p0a,perp_unit_vec) * perp_unit_vec
+            pfa_mag = -e * np.linalg.norm(p0a_perp)
+            # final momentum vector, parallel + perpendicular vectors
             pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
-            dp_vec[index] = pfa - p0a
+            wall_dp_vec[index] = pfa - p0a
             matrix = np.eye(len(num_collisions))
 
         match num_collisions[index]: 
@@ -163,7 +174,6 @@ def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np
                     if(collision_matrix[index,colision_index] != 0):
                         collide_partner_ind_vec = np.append(collide_partner_ind_vec, colision_index)  # Index of ball that is being collided with
                 p0a = p0_matrix[index,:] # Momentum of ball of interest
-                #p0b_vec = np.array([p0_matrix[collide_partner_ind_vec,:]]) # Momentum of colliding ball 1
                 perp_unit_vec1 = collision_vectors[index, collide_partner_ind_vec[0]] # Pulling first unit vector pointing to collision location for ball of interest
                 perp_unit_vec1 = perp_unit_vec[0, 0] 
                 perp_unit_vec2 = collision_vectors[index, collide_partner_ind_vec[1]] # Pulling unit second vector pointing to collision location for ball of interest
@@ -204,6 +214,8 @@ def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np
                 dp_vec[index] = np.array([0,0,0])
                 matrix = np.eye(len(num_collisions))
     # debug
+    # add wall collision to ball collision
+    dp_vec = dp_vec + wall_dp_vec
     return(dp_vec, matrix)
 
 def find_paralell_unit_vecs(perp_unit_vec, error_val):
