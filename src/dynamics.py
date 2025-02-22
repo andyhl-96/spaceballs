@@ -2,7 +2,36 @@ import numpy as np
 import sympy as sp
 from collision import check_collision
 
-def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: np.ndarray, e: float, bounds: tuple):
+# solve the potential function once because solving it every ms
+# is silly
+def solve_potential(potential_str: str, data_matrix: np.ndarray):
+    mass_vec = data_matrix[:, 0]
+    x_vec = data_matrix[:, 1]
+    y_vec = data_matrix[:, 2]
+    z_vec = data_matrix[:, 3]
+    # Defining sybolic variables
+    m = sp.symbols('m') 
+    x = sp.symbols('x')
+    y = sp.symbols('y')
+    z = sp.symbols('z')
+    px = sp.symbols('px')
+    py = sp.symbols('py')
+    pz = sp.symbols('pz')
+
+    potential = sp.sympify(potential_str) # Defining the potential function symbolically
+    dVdx = sp.diff(potential, x) # Differentiaing the potential with respect to x
+    dVdy = sp.diff(potential, y) # Differentiaing the potential with respect to y
+    dVdz = sp.diff(potential, z) # Differentiaing the potential with respect to z
+
+    dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
+    dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
+    dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
+
+    return (dVdx, dVdy, dVdz)
+
+    
+
+def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.ndarray, e: float, bounds: tuple):
     m_vec = data_matrix[:,0] # Reading mass of every object
 
     x_vec = data_matrix[:,1] # Reading x center of mass potions of every object
@@ -45,22 +74,22 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     # pz = sp.symbols(f'pz:{n}')
 
     # Defining sybolic variables
-    m = sp.symbols('m') 
-    x = sp.symbols('x')
-    y = sp.symbols('y')
-    z = sp.symbols('z')
-    px = sp.symbols('px')
-    py = sp.symbols('py')
-    pz = sp.symbols('pz')
+    # m = sp.symbols('m') 
+    # x = sp.symbols('x')
+    # y = sp.symbols('y')
+    # z = sp.symbols('z')
+    # px = sp.symbols('px')
+    # py = sp.symbols('py')
+    # pz = sp.symbols('pz')
 
-    potential = sp.sympify(potential_str) # Defining the potential function symbolically
-    dVdx = sp.diff(potential,x) # Differentiaing the potential with respect to x
-    dVdy = sp.diff(potential,y) # Differentiaing the potential with respect to y
-    dVdz = sp.diff(potential,z) # Differentiaing the potential with respect to z
+    # potential = sp.sympify(potential_str) # Defining the potential function symbolically
+    # dVdx = sp.diff(potential, x) # Differentiaing the potential with respect to x
+    # dVdy = sp.diff(potential, y) # Differentiaing the potential with respect to y
+    # dVdz = sp.diff(potential, z) # Differentiaing the potential with respect to z
 
-    dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
-    dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
-    dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
+    # dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
+    # dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
+    # dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
 
     dx = np.zeros((n,1))
     dy = np.zeros((n,1))
@@ -84,9 +113,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
     dz = pz_vec/m_vec * dt # z update
-    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt
-    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
-    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
+    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt
+    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
+    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
 
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
