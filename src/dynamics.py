@@ -20,22 +20,25 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     n = len(x_vec) # Number of objects
 
     # Lizard Testing Potential Input
-    for index in np.arange(0,len(potential_str)):
-        if((potential_str[index] != "x") and (potential_str[index] != "y") 
-           and (potential_str[index] != "z") and (potential_str[index] != "+")
-            and (potential_str[index] != "-") and (potential_str[index] != "/")
-            and (potential_str[index] != "*") and (potential_str[index] != " ")
-            and (potential_str[index] != "np.exp") and (potential_str[index] != "np.sqrt")
-            and (potential_str[index] != "1") and (potential_str[index] != "2")
-            and (potential_str[index] != "3") and (potential_str[index] != "4")
-            and (potential_str[index] != "5") and (potential_str[index] != "6")
-            and (potential_str[index] != "7") and (potential_str[index] != "8")
-            and (potential_str[index] != "9") and (potential_str[index] != "0")
-            and (potential_str[index] != "m") and (potential_str[index] != "(")
-            and (potential_str[index] != ")") and (potential_str[index] != ".")
-           ):
-            print(f"Potential function is invalid, can only depend on x,y,z and constants") 
-            return(0)
+    # for index in np.arange(0,len(potential_str)):
+    #     if((potential_str[index] != "x") and (potential_str[index] != "y") 
+    #        and (potential_str[index] != "z") and (potential_str[index] != "+")
+    #         and (potential_str[index] != "-") and (potential_str[index] != "/")
+    #         and (potential_str[index] != "*") and (potential_str[index] != " ")
+    #         and (potential_str[index] != "np.exp") and (potential_str[index] != "np.sqrt")
+    #         and (potential_str[index] != "1") and (potential_str[index] != "2")
+    #         and (potential_str[index] != "3") and (potential_str[index] != "4")
+    #         and (potential_str[index] != "5") and (potential_str[index] != "6")
+    #         and (potential_str[index] != "7") and (potential_str[index] != "8")
+    #         and (potential_str[index] != "9") and (potential_str[index] != "0")
+    #         and (potential_str[index] != "m") and (potential_str[index] != "(")
+    #         and (potential_str[index] != ")") and (potential_str[index] != ".")
+    #         and (potential_str[index] != "s") and (potential_str[index] != "c")
+    #         and (potential_str[index] != "o") and (potential_str[index] != "i")
+    #         and (potential_str[index] != ")")
+    #        ):
+    #         print(f"Potential function is invalid, can only depend on x,y,z and constants") 
+    #         return(0)
     
     # x = sp.symbols(f'x:{n}')
     # y = sp.symbols(f'y:{n}')
@@ -112,7 +115,7 @@ def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np
     for index in range(len(num_collisions)):
         p0a = p0_matrix[index,:]
         if np.linalg.norm(collision_walls[index,:]) != 0:
-            perp_unit_vec = -collision_walls / np.linalg.norm(collision_walls)
+            perp_unit_vec = -collision_walls[index,:] / np.linalg.norm(collision_walls[index,:])
             par_unit_vec, par_unit_vec2 = find_paralell_unit_vecs(perp_unit_vec,0.0000001)
             p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
             p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
