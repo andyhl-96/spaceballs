@@ -58,14 +58,16 @@ def run_viz():
     create_sphere([4, 8, 0], 0.5, [0, 1, 0], 1, exclude=False)
     create_box([5, 0, -5], 10, 10, 0.1, [1, 1, 1], 1000000, exclude=True)
 
-    pfunc = "0"
+    # pfunc = "0.5*75*x**2+0.5*50*y**2+0.5*100*z**2"
+    pfunc = "m*9.8*y"
 
+    t = 0
     ## main loop ##
     while True:
         update_viewport()
         collisions, _ = check_collision()
         # get updated mass, positions, momentums
-        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.array([[0, 200, 0], [0, -50, 0], [0, -100, 0], [0, -50, 0], [0, 0, 0]]), 0.5)
+        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.array([[0, 200*np.exp(-0*(t-0.1)**2), 0], [0, -50*np.exp(-0*(t-0.1)**2), 0], [0, -100*np.exp(-0*(t-0.1)**2), 0], [0, -50*np.exp(-0*(t-0.1)**2), 0], [0, 0, 0]]), 0.5)
 
         vis.poll_events()
         vis.update_renderer()
@@ -78,8 +80,10 @@ def run_viz():
                 Body.objects[i].model.translate((dpos).tolist())
 
         # update the dynamics matrix to contain positions
+        t = t + dt
         update_dynamics(dynam)
         Body.objects[0].position()
+        
 
         if not vis.poll_events():
             break
