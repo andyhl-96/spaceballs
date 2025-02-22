@@ -67,9 +67,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dpy = np.zeros((n,1))
     dpz = np.zeros((n,1))
 
-    dx = px/m * dt # x update
-    dy = py/m * dt # y update
-    dz = pz/m * dt # z update
+    dx = px_vec/m_vec * dt # x update
+    dy = py_vec/m_vec * dt # y update
+    dz = pz_vec/m_vec * dt # z update
     dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x*dt # + collision_matrix @ np.ones((n,1)) * collision()
     dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y*dt
     dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z*dt
