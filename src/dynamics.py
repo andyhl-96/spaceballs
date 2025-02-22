@@ -101,7 +101,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     # print(data_matrix_output)
     return(data_matrix_output)
 
-def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: np.ndarray,collision_vectors: np.ndarray, m_vec: np.ndarray, e: float):
+def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np.ndarray,p0y: np.ndarray,p0z: np.ndarray,collision_vectors: np.ndarray, m_vec: np.ndarray, e: float):
     epsilon = 0.001 # See where this is used (if difference in momenta is below this the momenta are forced to be equal)
 
     p0_matrix = np.column_stack((p0x,p0y,p0z)) # Creating a matrix of momentum vectors
@@ -110,6 +110,18 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
     dp_vec = np.zeros((len(num_collisions), 3))
 
     for index in range(len(num_collisions)):
+        p0a = p0_matrix[index,:]
+        if np.linalg.norm(collision_walls[index,:]) != 0:
+            perp_unit_vec = -collision_walls / np.linalg.norm(collision_walls)
+            par_unit_vec, par_unit_vec2 = find_paralell_unit_vecs(perp_unit_vec,0.0000001)
+            p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
+            p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
+            p0a_perp = np.dot(p0a,perp_unit_vec)
+            pfa_mag = -e * p0a_perp
+            pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
+            dp_vec[index] = pfa - p0a
+            matrix = np.eye(len(num_collisions))
+
         match num_collisions[index]: 
             # colliding with 1 other body
             case 1: 
@@ -123,25 +135,7 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                 
                 # Trying to create a vector perpendicular to perp_unit_vec
                 
-                while_index = 0
-                error = 1
-                while error > 0.0000001:
-                    if perp_unit_vec[0] != 0:
-                        y_try_par = np.random.random()
-                        z_try_par = np.random.random()
-                        x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
-                    elif perp_unit_vec[1] != 0:
-                        x_try_par = np.random.random()
-                        z_try_par = np.random.random()
-                        y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
-                    elif perp_unit_vec[2] != 0:
-                        x_try_par = np.random.random()
-                        y_try_par = np.random.random()
-                        z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
-                    par_unit_vec = (np.array([x_try_par, y_try_par, z_try_par])) / np.linalg.norm((np.array([x_try_par,y_try_par,z_try_par]))) # Vector Paralell to collision plane
-                    error = abs(np.dot(par_unit_vec, perp_unit_vec))
-                    while_index = while_index + 1
-                par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
+                par_unit_vec, par_unit_vec2 = find_paralell_unit_vecs(perp_unit_vec,0.0000001)
 
                 p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
                 p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
@@ -179,25 +173,8 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                 p0a_perp = np.dot(p0a, perp_unit_vec) * perp_unit_vec# Projecting momentum in direction of collision for ball of interest
                 p0b_perp = np.dot(p0b, perp_unit_vec) * perp_unit_vec
                 mb_avg = (m_vec[collide_partner_ind_vec[0]] + m_vec[collide_partner_ind_vec[1]]) * 0.5
-                while_index = 0
-                error = 1
-                while error > 0.0000001:
-                    if perp_unit_vec[0] != 0:
-                        y_try_par = np.random.random()
-                        z_try_par = np.random.random()
-                        x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
-                    elif perp_unit_vec[1] != 0:
-                        x_try_par = np.random.random()
-                        z_try_par = np.random.random()
-                        y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
-                    elif perp_unit_vec[2] != 0:
-                        x_try_par = np.random.random()
-                        y_try_par = np.random.random()
-                        z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
-                    par_unit_vec = (np.array([x_try_par, y_try_par, z_try_par])) / np.linalg.norm((np.array([x_try_par,y_try_par,z_try_par]))) # Vector Paralell to collision plane
-                    error = abs(np.dot(par_unit_vec, perp_unit_vec))
-                    while_index = while_index + 1
-                par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
+
+                par_unit_vec, par_unit_vec2 = find_paralell_unit_vecs(perp_unit_vec, 0.0000001)
 
                 p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
                 p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
@@ -229,6 +206,28 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
     # debug
     return(dp_vec, matrix)
 
+def find_paralell_unit_vecs(perp_unit_vec, error_val):
+    while_index = 0
+    error = 1
+    while error > error_val:
+        if perp_unit_vec[0] != 0:
+            y_try_par = np.random.random()
+            z_try_par = np.random.random()
+            x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
+        elif perp_unit_vec[1] != 0:
+            x_try_par = np.random.random()
+            z_try_par = np.random.random()
+            y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
+        elif perp_unit_vec[2] != 0:
+            x_try_par = np.random.random()
+            y_try_par = np.random.random()
+            z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
+        par_unit_vec = (np.array([x_try_par, y_try_par, z_try_par])) / np.linalg.norm((np.array([x_try_par,y_try_par,z_try_par]))) # Vector Paralell to collision plane
+        error = abs(np.dot(par_unit_vec, perp_unit_vec))
+        while_index = while_index + 1
+        par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
+
+        return par_unit_vec, par_unit_vec2
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
 #                   [4,5,6,5,3,2,1],
