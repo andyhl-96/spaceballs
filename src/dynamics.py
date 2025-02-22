@@ -147,6 +147,53 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                 dp_vec[index] = pfa - p0a
                 dp_vec[collide_partner_ind] = p0a - pfa
                 break
+            case 2:
+                collide_partner_ind_vec = np.array([])
+                for colision_index in range(len(num_collisions)):
+                    if(collision_matrix[index,colision_index] != 0):
+                        collide_partner_ind_vec = np.append(collide_partner_ind_vec, colision_index)  # Index of ball that is being collided with
+                p0a = p0_matrix[index,:] # Momentum of ball of interest
+                p0b_vec = np.array([[p0_matrix[collide_partner_ind_vec[0],:]], [p0_matrix[collide_partner_ind_vec[1],:]]]) # Momentum of colliding ball 1
+                perp_unit_vec1 = collision_vectors[index, collide_partner_ind_vec[0]] # Pulling first unit vector pointing to collision location for ball of interest
+                perp_unit_vec1 = perp_unit_vec[0, 0] 
+                perp_unit_vec2 = collision_vectors[index, collide_partner_ind_vec[1]] # Pulling unit second vector pointing to collision location for ball of interest
+                perp_unit_vec2 = perp_unit_vec[0, 0] 
+                perp_unit_vec = perp_unit_vec1 + perp_unit_vec2 / np.linalg.norm(perp_unit_vec1 + perp_unit_vec2)
+                p0b = p0_matrix[collide_partner_ind_vec[0],:] + p0_matrix[collide_partner_ind_vec[1],:]
+                p0a_perp = np.dot(p0a, perp_unit_vec) * perp_unit_vec# Projecting momentum in direction of collision for ball of interest
+                p0b_perp = np.dot(p0b, perp_unit_vec) * perp_unit_vec
+                mb_avg = (m_vec[collide_partner_ind_vec[0]] + m_vec[collide_partner_ind_vec[1]]) * 0.5
+                while_index = 0
+                error = 1
+                while error > 0.0000001:
+                    if perp_unit_vec[0] != 0:
+                        y_try_par = np.random.random()
+                        z_try_par = np.random.random()
+                        x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
+                    elif perp_unit_vec[1] != 0:
+                        x_try_par = np.random.random()
+                        z_try_par = np.random.random()
+                        y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
+                    elif perp_unit_vec[2] != 0:
+                        x_try_par = np.random.random()
+                        y_try_par = np.random.random()
+                        z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
+                    par_unit_vec = (np.array([x_try_par, y_try_par, z_try_par])) / np.linalg.norm((np.array([x_try_par,y_try_par,z_try_par]))) # Vector Paralell to collision plane
+                    error = abs(np.dot(par_unit_vec, perp_unit_vec))
+                    while_index = while_index + 1
+                par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
+
+                p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
+                p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
+
+                #p0b_par1 = np.dot(par_unit_vec,p0b) * par_unit_vec # p0b projection into paralell dir 1 (conserved momentum)
+                #p0b_par2 = np.dot(par_unit_vec2,p0b) * par_unit_vec2 # p0b projection into paralell dir 2 (conserved momentum)
+
+                pfa_mag = (-e*mb_avg * np.linalg.norm(p0a_perp) + m_vec[index] * (np.linalg.norm(p0a_perp)+np.linalg.norm(p0b_perp) + e*np.linalg.norm(p0b_perp))) / (m_vec[index] + mb_avg)
+                pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
+                dp_vec[index] = pfa - p0a
+                #dp_vec[collide_partner_ind] = p0a - pfa
+                break
             case _:
                 dp_vec[index] = np.array([0,0,0])
     # debug
