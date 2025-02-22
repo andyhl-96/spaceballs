@@ -81,20 +81,18 @@ def run_viz():
         update_dynamics(dynam)
         Body.objects[0].position()
 
+        if not vis.poll_events():
+            break
+
         time.sleep(dt)
+    vis.destroy_window()
 
 def main():
     # start the controller gui as a subprocess
-    #proc = subprocess.Popen([sys.executable, "controller.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen([sys.executable, "controller.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # run the physics sim
-    # file = open("temp", "w")
-    # file.close()
-    # file = open("temp", "r")
-    # output = ""
-    # while file.readline() == "":
-    #     output = file.readline()
-    #     print(output)
-    # print("child: " + output)
+    out = proc.stdout.readline()
+    print(out)
     run_viz()
 
 if __name__ == "__main__":
