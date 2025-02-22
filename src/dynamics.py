@@ -1,7 +1,8 @@
 import numpy as np
 import sympy as sp
+from collision import check_collision
 
-def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: np.ndarray): #, collision_matrix: np.ndarray):
+def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: np.ndarray, e: float):
     m_vec = data_matrix[:,0] # Reading mass of every object
 
     x_vec = data_matrix[:,1] # Reading x center of mass potions of every object
@@ -68,12 +69,14 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     dpy = np.zeros((n,1))
     dpz = np.zeros((n,1))
 
+    collision_matrix,collision_vectors = check_collision()
+
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
     dz = pz_vec/m_vec * dt # z update
-    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x*dt # + collision_matrix @ np.ones((n,1)) * collision()
-    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y*dt
-    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z*dt
+    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x*dt + collision_update(collision_matrix,px,py,pz,collision_vectors,m_vec,e)[:,0]
+    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y*dt + collision_update(collision_matrix,px,py,pz,collision_vectors,m_vec,e)[:,1]
+    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z*dt + collision_update(collision_matrix,px,py,pz,collision_vectors,m_vec,e)[:,2]
 
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
@@ -85,7 +88,64 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
 
     data_matrix_output = np.column_stack((m_vec, x_vec, y_vec, z_vec, px_vec, py_vec, pz_vec)) # Constructing output matrix
 
-    return data_matrix_output
+    # print(data_matrix_output)
+    return(data_matrix_output)
+
+def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: np.ndarray,collision_vectors: np.ndarray, m_vec: np.ndarray, e: float):
+    
+    p0_matrix = np.column_stack((p0x,p0y,p0z)) # Creating a matrix of momentum vectors
+
+    num_collisions = collision_matrix @ np.ones(len(collision_matrix[:,0])) # Vector of number of collisions for each ball
+    
+    dp_vec = np.zeros((len(num_collisions),1))
+
+    for index in np.arange(0,len(num_collisions)):
+        match num_collisions(index): 
+            case 2: 
+                collide_partner_ind = np.where(collision_matrix[index,:]==1)[0] # Index of ball that is being collided with
+                p0a = p0_matrix[index,:] # Momentum of ball of interest
+                p0b = p0_matrix[collide_partner_ind,:] # Momentum of colliding ball
+                perp_unit_vec = collision_vectors[index,collide_partner_ind] # Pulling unit vector pointing to collision location for ball of interest 
+                p0a_perp = np.dot(p0a,perp_unit_vec) * perp_unit_vec# Projecting momentum in direction of collision for ball of interest
+                p0b_perp = np.dot(p0b,perp_unit_vec) * perp_unit_vec# Projecting momentum in direction of collision for ball that is being collided with
+                
+                # Trying to create a vector perpendicular to perp_unit_vec
+                x_try_par = np.rand()
+                y_try_par = np.rand()
+                z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
+                par_unit_vec = (np.array([[x_try_par],[y_try_par],[z_try_par]])) / np.linalg.norm((np.array([[x_try_par],[y_try_par],[z_try_par]])))
+                while_index = 0
+                while abs(np.dot(par_unit_vec,perp_unit_vec)) < 0.0000001:
+                    if(while_index % 3 == 0):
+                        x_try_par = -(perp_unit_vec[1]*y_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[0]
+                        y_try_par = np.rand()
+                        z_try_par = np.rand()
+                    elif(while_index % 3 == 1):
+                        x_try_par = np.rand()
+                        y_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[2]*z_try_par) / perp_unit_vec[1]
+                        z_try_par = np.rand()
+                    else:
+                        x_try_par = np.rand()
+                        y_try_par = np.rand()
+                        z_try_par = -(perp_unit_vec[0]*x_try_par + perp_unit_vec[1]*y_try_par) / perp_unit_vec[2]
+                    par_unit_vec = (np.array([[x_try_par],[y_try_par],[z_try_par]])) / np.linalg.norm((np.array([[x_try_par],[y_try_par],[z_try_par]]))) # Vector Paralell to collision plane
+                    while_index = while_index + 1
+                par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
+
+                p0a_par1 = np.dot(par_unit_vec,p0a) * par_unit_vec # p0a projection into paralell dir 1 (conserved momentum)
+                p0a_par2 = np.dot(par_unit_vec2,p0a) * par_unit_vec2 # p0a projection into paralell dir 2 (conserved momentum)
+
+                p0b_par1 = np.dot(par_unit_vec,p0b) * par_unit_vec # p0b projection into paralell dir 1 (conserved momentum)
+                p0b_par2 = np.dot(par_unit_vec2,p0b) * par_unit_vec2 # p0b projection into paralell dir 2 (conserved momentum)
+
+                pfa_mag = (-e*m_vec(collide_partner_ind)*np.linalg.norm(p0a_perp) + m_vec(index)*(np.linalg.norm(p0a_perp)+np.linalg.norm(p0b_perp) + e*np.linalg.norm(p0b_perp))) / (m_vec(index) + m_vec(collide_partner_ind))
+                pfa = pfa_mag * perp_unit_vec + p0a_par1 + p0a_par2
+                dp_vec[index] = pfa - p0a
+            case _:
+                dp_vec[index] = np.array([0,0,0])
+
+    return(dp_vec)
+
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
 #                   [4,5,6,5,3,2,1],
