@@ -8,7 +8,7 @@ class Body:
     # m, dx, dy, dz, dpx, pdy, dpz
 
     # model contains the position
-    dynamics_matrix = np.zeros((1, 7))
+    dynamics_matrix = np.zeros((0, 7))
     objects = []
 
     def __init__(self, 
@@ -26,6 +26,17 @@ class Body:
         self.model = model
 
         Body.objects.append(self)
+        dynamics = np.array([mass, 
+                             np.random.random(), 
+                             np.random.random(),
+                             np.random.random(),
+                             np.random.random(),
+                             np.random.random(),
+                             np.random.random()])
+        if len(Body.dynamics_matrix) == 0:
+            Body.dynamics_matrix = np.array([dynamics])
+        else:
+            Body.dynamics_matrix = np.vstack([Body.dynamics_matrix, dynamics])
     
     def position(self):
         if self.model == None:

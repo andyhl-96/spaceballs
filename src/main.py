@@ -4,6 +4,7 @@ import open3d as o3d
 import time
 from body import Body
 from collision import check_collision
+from dynamics import dynamics
 
 
 origin = [0, 0, 0]
@@ -45,23 +46,28 @@ def main():
     create_sphere([0, 4, 0], 1, [1, 0, 0], 0)
     create_sphere([0, 0, 0], 1, [0, 0, 1], 0)
     create_sphere([4, 0, 0], 1, [0, 1, 0], 0)
+    print(Body.dynamics_matrix)
     #create_box([0, 0, 0], 10, 10, 0.1, [0, 0, 0], 0)
-
-
 
     ## main loop ##
     while True:
         update_viewport()
         collisions = check_collision()
-        print(collisions)
+        # get updated mass, positions, momentums
+        dynam = dynamics(Body.dynamics_matrix, dt, "m*(-9.8)*y", np.zeros((len(Body.dynamics_matrix), 3)))
+        #print(collisions)
 
         vis.poll_events()
         vis.update_renderer()
         if not 1 in collisions[0:]:
-            Body.objects[0].model.translate([0, -10 * dt, 0])
+            #Body.objects[0].model.translate([0, -10 * dt, 0])
+            vel = dynam[0, 4:7] / dynam[0, 0]
+            Body.objects[0].model.translate(vel.tolist() * dt)
         if not 1 in collisions[2:]:
-            Body.objects[2].model.translate([-10 * dt, 0, 0])
+            #Body.objects[2].model.translate([-10 * dt, 0, 0])
+            pass
 
+        Body.dynamics_matrix = dynam
         time.sleep(dt)
 
 if __name__ == "__main__":
