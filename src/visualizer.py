@@ -2,16 +2,20 @@ from turtle import update
 import numpy as np
 import open3d as o3d
 import time
+
+from psutil import Popen
 from body import Body
 from collision import check_collision
 from dynamics import dynamics
+import subprocess
+import sys
 
 
 origin = [0, 0, 0]
 # holds all created objects
 #objects = []
 vis = o3d.visualization.Visualizer()
-vis.create_window(window_name = "SIM", width = 1280, height = 720)
+vis.create_window(window_name = "SIMULATION", width = 1280, height = 720)
 view_control = vis.get_view_control()
 view_control.set_zoom(100)
 
@@ -42,37 +46,49 @@ def update_dynamics(dynam_new):
         for j in range(1, 4):
             Body.dynamics_matrix[i, j] = bodypos[j - 1]
 
-def main():
-    global objects
+def run_viz():
     dt = 0.001
     global vis
-
 
     create_sphere([4, 2, 0], 0.5, [1, 0, 0], 1, exclude = True)
     create_sphere([4, 4, 0], 0.5, [0, 0, 1], 1, exclude=False)
     create_sphere([4, 6, 0], 0.5, [0, 1, 0], 1, exclude=False)
     create_box([5, 0, -5], 10, 10, 0.1, [0, 0, 0], 1000000, exclude=True)
 
-    pfunc = input("Enter potential function >> ")
+    pfunc = "m*9.8*y"
 
     ## main loop ##
     while True:
         update_viewport()
         collisions, _ = check_collision()
         # get updated mass, positions, momentums
-        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.zeros((len(Body.dynamics_matrix), 3)))
+        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.zeros((len(Body.dynamics_matrix), 3)), 1)
 
         vis.poll_events()
         vis.update_renderer()
 
         for i in range(len(dynam)):
-            if not Body.objects[i].exclude and not 1 in collisions[i]:
+            if not Body.objects[i].exclude:
                 vel = dynam[i, 4:7] / dynam[i, 0]
                 Body.objects[i].model.translate((vel * dt).tolist())
 
         update_dynamics(dynam)
 
         time.sleep(dt)
+
+def main():
+    # start the controller gui as a subprocess
+    #proc = subprocess.Popen([sys.executable, "controller.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # run the physics sim
+    # file = open("temp", "w")
+    # file.close()
+    # file = open("temp", "r")
+    # output = ""
+    # while file.readline() == "":
+    #     output = file.readline()
+    #     print(output)
+    # print("child: " + output)
+    run_viz()
 
 if __name__ == "__main__":
     main()

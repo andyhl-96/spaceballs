@@ -17,6 +17,7 @@ class Body:
                  mass: float = 1,
                  charge: float = 0,
                  moment: float = 0,
+                 restitution: float = 1,
                  geom = None,
                  model = None,
                  exclude: bool = False):
