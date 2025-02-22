@@ -131,29 +131,7 @@ def create_box(position: list, w: float, d: float, h: float, color: list, mass: 
     body = Body(xyz = np.array(position), mass = mass, model = box, geom = 0, exclude = exclude)
     vis.add_geometry(Body.objects[-1].model)
 
-def update_viewport():
-    for obj in Body.objects:
-        vis.update_geometry(obj.model)
-
-def update_dynamics(dynam_new):
-    Body.dynamics_matrix = dynam_new
-    for i in range(len(Body.dynamics_matrix)):
-        bodypos = Body.objects[i].position()
-        for j in range(1, 4):
-            Body.dynamics_matrix[i, j] = bodypos[j - 1]
-
-def run_viz(pfunc, N, size, color_random, mass, bounds):
-    dt = 0.001
-    global vis
-    # N = 50
-    placement_range = 10
-    # create_sphere([1, 0, 0], 0.5, [1, 0, 0], 2, exclude = False)
-    # create_sphere([0, 1, 0], 0.5, [0, 0, 1], 0.5, exclude=False)
-    # create_sphere([0, 0, 1], 0.5, [0, 1, 0], 1, exclude=False)
-    # create_sphere([-1, 0, 0], 0.5, [0, 1, 0], 0.25, exclude=False)
-    for index in range(N):
-        color = [np.random.random(), np.random.random(), np.random.random()] if color_random else [1, 0, 0]
-        create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, mass, exclude=False)
+def draw_axes():
     zarr = o3d.geometry.TriangleMesh.create_arrow(0.1, 0.2, 4, 0.4)
     zarr.paint_uniform_color([0, 0, 1])
     vis.add_geometry(zarr)
@@ -172,9 +150,36 @@ def run_viz(pfunc, N, size, color_random, mass, bounds):
                           [-1, 0, 0]]), center=[0, 0, 0])
     vis.add_geometry(xarr)
 
+def update_viewport():
+    for obj in Body.objects:
+        vis.update_geometry(obj.model)
+
+def update_dynamics(dynam_new):
+    Body.dynamics_matrix = dynam_new
+    for i in range(len(Body.dynamics_matrix)):
+        bodypos = Body.objects[i].position()
+        for j in range(1, 4):
+            Body.dynamics_matrix[i, j] = bodypos[j - 1]
+
+def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
+    dt = 0.001
+    global vis
+    # N = 50
+    placement_range = 10
+    # create_sphere([1, 0, 0], 0.5, [1, 0, 0], 2, exclude = False)
+    # create_sphere([0, 1, 0], 0.5, [0, 0, 1], 0.5, exclude=False)
+    # create_sphere([0, 0, 1], 0.5, [0, 1, 0], 1, exclude=False)
+    # create_sphere([-1, 0, 0], 0.5, [0, 1, 0], 0.25, exclude=False)
+    for index in range(N):
+        color = [np.random.random(), np.random.random(), np.random.random()] if color_random else [1, 0, 0]
+        create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, np.abs(np.random.normal(avg_mass, sd_mass)), exclude=False)
+    
+    draw_axes()
+
     # pfunc = "0.5*75*x**2+0.5*50*y**2+0.5*100*z**2"
     # pfunc = "m*9.8*y"
 
+    # total ms elapsed
     t = 0
     size = 10
     ## main loop ##
@@ -218,7 +223,8 @@ class SimulationGUI:
             "ball_size": 0.5,  # Default ball size
             "pfunc": "m*98*y",  # Default potential function
             "color_random": True,  # Color is random by default
-            "ball_mass": 1,  # Default ball mass
+            "ball_avg_mass": 1,  # Default ball mass
+            "ball_sd_mass": 1,
             "bounds": "-10, 10, -10, 10, -10, 10" # bounds
         }
 
@@ -256,10 +262,12 @@ class SimulationGUI:
         self.color_check.grid(row=4, column=1)
 
         # Ball Mass
-        self.mass_label = tk.Label(self.master, text="Ball Mass:")
+        self.mass_label = tk.Label(self.master, text="Ball Avg., sd. Mass:")
         self.mass_label.grid(row=5, column=0, sticky="e", padx=10)
-        self.mass_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_mass"]))
-        self.mass_entry.grid(row=5, column=1)
+        self.mass_avg_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_avg_mass"]))
+        self.mass_avg_entry.grid(row=5, column=1)
+        self.mass_sd_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_sd_mass"]))
+        self.mass_sd_entry.grid(row=5, column=2)
 
         # bounds
         self.bounds_label = tk.Label(self.master, text="Bounds (xlb,xub,ylb,yub,zlb,zub)")
@@ -277,7 +285,8 @@ class SimulationGUI:
         self.variables["ball_size"] = float(self.size_entry.get())
         self.variables["pfunc"] = self.pfunc_entry.get()
         self.variables["color_random"] = self.color_var.get()
-        self.variables["ball_mass"] = float(self.mass_entry.get())
+        self.variables["ball_avgmass"] = float(self.mass_avg_entry.get())
+        self.variables["ball_sd_mass"] = float(self.mass_sd_entry.get())
         bounds_str = self.bounds_entry.get()
         # change bounds to a 6 tuple
         bounds_list = bounds_str.split(',')
@@ -294,7 +303,7 @@ def main():
     app = SimulationGUI(root)
     root.mainloop()  # Run the GUI event loop
     if app.variables["N"] and app.variables["pfunc"]:
-        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_mass"], app.variables["bounds"])
+        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"])
 
 if __name__ == "__main__":
     main()

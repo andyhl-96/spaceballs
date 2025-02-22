@@ -169,7 +169,7 @@ def collision_update(collision_matrix: int,p0x: np.ndarray,p0y: np.ndarray,p0z: 
                     if(collision_matrix[index,colision_index] != 0):
                         collide_partner_ind_vec = np.append(collide_partner_ind_vec, colision_index)  # Index of ball that is being collided with
                 p0a = p0_matrix[index,:] # Momentum of ball of interest
-                p0b_vec = np.array([p0_matrix[collide_partner_ind_vec,:]]) # Momentum of colliding ball 1
+                #p0b_vec = np.array([p0_matrix[collide_partner_ind_vec,:]]) # Momentum of colliding ball 1
                 perp_unit_vec1 = collision_vectors[index, collide_partner_ind_vec[0]] # Pulling first unit vector pointing to collision location for ball of interest
                 perp_unit_vec1 = perp_unit_vec[0, 0] 
                 perp_unit_vec2 = collision_vectors[index, collide_partner_ind_vec[1]] # Pulling unit second vector pointing to collision location for ball of interest
