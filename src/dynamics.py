@@ -30,7 +30,8 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
             and (potential_str[index] != "5") and (potential_str[index] != "6")
             and (potential_str[index] != "7") and (potential_str[index] != "8")
             and (potential_str[index] != "9") and (potential_str[index] != "0")
-            and (potential_str[index] != "m")
+            and (potential_str[index] != "m") and (potential_str[index] != "(")
+            and (potential_str[index] != ")")
            ):
             print(f"Potential function is invalid, can only depend on x,y,z and constants") 
             return(0)
