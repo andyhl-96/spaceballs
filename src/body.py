@@ -11,13 +11,15 @@ class Body:
     dynamics_matrix = np.zeros((0, 7))
     objects = []
 
+    # do not use xyz for position, its only initial position
     def __init__(self, 
                  xyz: np.ndarray,
-                 mass: float = 0,
+                 mass: float = 1,
                  charge: float = 0,
                  moment: float = 0,
                  geom = None,
-                 model = None):
+                 model = None,
+                 exclude: bool = False):
         self.xyz = xyz
         self.mass = mass
         self.charge = charge
@@ -26,6 +28,7 @@ class Body:
         self.geom = geom
         # open3d model
         self.model = model
+        self.exclude = exclude
 
         Body.objects.append(self)
         dynamics = np.array([mass, 
@@ -39,6 +42,7 @@ class Body:
             Body.dynamics_matrix = np.array([dynamics])
         else:
             Body.dynamics_matrix = np.vstack([Body.dynamics_matrix, dynamics])
+
     
     def position(self):
         if self.model == None:

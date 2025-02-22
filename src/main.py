@@ -17,18 +17,18 @@ view_control.set_zoom(100)
 
 
 # some helper functions
-def create_sphere(position: list, radius: float, color: list, mass: float):
+def create_sphere(position: list, radius: float, color: list, mass: float, exclude: bool):
     sphere = o3d.geometry.TriangleMesh.create_sphere(radius, 20, False)
     sphere.translate(position)
     sphere.paint_uniform_color(color)
-    body = Body(xyz = np.array(position), mass = mass, geom = radius, model = sphere)
+    body = Body(xyz = np.array(position), mass = mass, geom = radius, model = sphere, exclude = exclude)
     vis.add_geometry(Body.objects[-1].model)
 
-def create_box(position: list, w: float, d: float, h: float, color: list, mass: float):
+def create_box(position: list, w: float, d: float, h: float, color: list, mass: float, exclude: bool):
     box = o3d.geometry.TriangleMesh.create_box(width = w, depth = d, height = h)
     box.translate(position)
     box.paint_uniform_color(color)
-    body = Body(xyz = np.array(position), mass = mass, model = box, geom = 0)
+    body = Body(xyz = np.array(position), mass = mass, model = box, geom = 0, exclude = exclude)
     vis.add_geometry(Body.objects[-1].model)
 
 def update_viewport():
@@ -48,30 +48,27 @@ def main():
     global vis
 
 
-    create_sphere([4, 2, 0], 0.5, [1, 0, 0], 1)
-    create_sphere([4, 4, 0], 0.5, [0, 0, 1], 1)
-    create_sphere([4, 6, 0], 0.5, [0, 1, 0], 1)
-    create_box([0, 0, 0], 10, 10, 0.1, [0, 0, 0], 0)
+    create_sphere([4, 2, 0], 0.5, [1, 0, 0], 1, exclude = True)
+    create_sphere([4, 4, 0], 0.5, [0, 0, 1], 1, exclude=False)
+    create_sphere([4, 6, 0], 0.5, [0, 1, 0], 1, exclude=False)
+    create_box([5, 0, -5], 10, 10, 0.1, [0, 0, 0], 1000000, exclude=True)
+
+    pfunc = input("Enter potential function >> ")
 
     ## main loop ##
     while True:
         update_viewport()
-        collisions = check_collision()
+        collisions, _ = check_collision()
         # get updated mass, positions, momentums
-        dynam = dynamics(Body.dynamics_matrix, dt, "0.5 * 1000 * x ** 2", np.zeros((len(Body.dynamics_matrix), 3)))
+        dynam = dynamics(Body.dynamics_matrix, dt, pfunc, np.zeros((len(Body.dynamics_matrix), 3)))
 
         vis.poll_events()
         vis.update_renderer()
-        #if not 1 in collisions[0:]:
-            #Body.objects[0].model.translate([0, -10 * dt, 0])
-        vel = dynam[2, 4:7] / dynam[2, 0]
-        Body.objects[2].model.translate((vel * dt).tolist())
-        #if not 1 in collisions[1:]:
-        vel = dynam[1, 4:7] / dynam[1, 0]
-        Body.objects[1].model.translate((vel * dt).tolist())
 
-        vel = dynam[0, 4:7] / dynam[0, 0]
-        Body.objects[0].model.translate((vel * dt).tolist())
+        for i in range(len(dynam)):
+            if not Body.objects[i].exclude and not 1 in collisions[i]:
+                vel = dynam[i, 4:7] / dynam[i, 0]
+                Body.objects[i].model.translate((vel * dt).tolist())
 
         update_dynamics(dynam)
 

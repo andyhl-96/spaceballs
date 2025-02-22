@@ -83,14 +83,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     py_vec = py_vec + dpy # New py
     pz_vec = pz_vec + dpz # New pz
 
-<<<<<<< HEAD
     data_matrix_output = np.column_stack((m_vec, x_vec, y_vec, z_vec, px_vec, py_vec, pz_vec)) # Constructing output matrix
-=======
 
-    data_matrix_output = np.column_stack((px_vec, py_vec, pz_vec)) # Constructing output matrix
->>>>>>> 319caf159eaa400c5ad00d940520efc5012c22f0
-    # print(data_matrix_output)
-    return(data_matrix_output)
+    return data_matrix_output
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
 #                   [4,5,6,5,3,2,1],

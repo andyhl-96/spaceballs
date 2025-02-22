@@ -46,11 +46,16 @@ def check_collision():
     objects = Body.objects
 
     collision_matrix = np.zeros((len(objects), len(objects)))
+    collision_vectors = np.zeros((len(objects), len(objects), 3))
     # perform a broad phase check then narrow phase
     for i in range(len(objects) - 1):
         for j in range(i + 1, len(objects)):
             if distance(objects[i], objects[j]) < (objects[i].geom + objects[j].geom):
                 collision_matrix[i, j] = 1
                 collision_matrix[j, i] = 1
+                collision_vect = (objects[i].position() - objects[j].position()) / (distance(objects[i], objects[j]))
+                collision_vectors[i, j] = collision_vect
+                collision_vectors[j, i] = -1 * collision_vect
 
-    return collision_matrix
+
+    return collision_matrix, collision_vectors
