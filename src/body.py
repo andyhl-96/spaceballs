@@ -37,9 +37,9 @@ class Body:
                              xyz[0], 
                              xyz[1],
                              xyz[2],
-                             np.random.normal(0, 100),
-                             np.random.normal(0, 100),
-                             np.random.normal(0, 100)])
+                             np.random.normal(0, 1),
+                             np.random.normal(0, 1),
+                             np.random.normal(0, 1)])
         if len(Body.dynamics_matrix) == 0:
             Body.dynamics_matrix = np.array([dynamics])
         else:

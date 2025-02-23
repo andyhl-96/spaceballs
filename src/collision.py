@@ -98,6 +98,20 @@ def check_collision(bounds: tuple):
             collision_wall[i] += np.array([0, 0, 1])
         elif pos[2] > bounds[5]:
             collision_wall[i] += np.array([0, 0, -1])
+    # check the last ball
+    pos = objects[-1].position()
+    if pos[0] < bounds[0]:
+        collision_wall[-1] += np.array([1, 0, 0])
+    elif pos[0] > bounds[1]:
+        collision_wall[-1] += np.array([-1, 0, 0])
+    if pos[1] < bounds[2]:
+        collision_wall[-1] += np.array([0, 1, 0])
+    elif pos[1] > bounds[3]:
+        collision_wall[-1] += np.array([0, -1, 0])
+    if pos[2] < bounds[4]:
+        collision_wall[-1] += np.array([0, 0, 1])
+    elif pos[2] > bounds[5]:
+        collision_wall[-1] += np.array([0, 0, -1])
 
 
     return collision_matrix, collision_vectors, collision_wall
