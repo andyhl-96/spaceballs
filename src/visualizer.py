@@ -129,7 +129,7 @@ def create_main_gui():
     body_charge_entry = tk.Spinbox(bottom_frame,from_ = -100, to = 100, text = "SPACE BALLS!!")
     body_label2 = tk.Label(bottom_frame, textvariable=StringVar(value="Charge"))
     body_ex_entry = tk.Checkbutton(bottom_frame, textvariable=body_ex_var)
-    add_body_button = tk.Button(bottom_frame, text="Add (Quick Maths!)", command=partial(add_body, body_pos_str, body_rad_entry, body_color_str, body_mass_entry, body_ex_var))
+    add_body_button = tk.Button(bottom_frame, text="Add (Quick Maths!)", command=partial(add_body, body_pos_str, body_rad_entry, body_color_str, body_mass_entry, body_ex_var, body_charge_entry))
     color_label = tk.Label(bottom_frame, text = "Color (RGB))")
     exclude_label = tk.Label(bottom_frame, text="Exclude (excludes from physics simulation)")
     radius_label = tk.Label(bottom_frame, text="Radius")
@@ -165,7 +165,7 @@ def apply_force(body_label, force_label):
     for i in bodies:
         external_forces[int(i)] = np.array([float(force[0]), float(force[1]), float(force[2])])
 
-def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body_ex_var):
+def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body_ex_var, body_charge_entry):
     pos_str = body_pos_str.get()
     pos = pos_str.split(' ')
     color_str = body_color_var.get()
@@ -177,10 +177,11 @@ def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body
 
     mass = float(body_mass_entry.get())
     ex = body_ex_var.get()
+    charge = float(body_charge_entry.get())
 
-    create_sphere(pos, rad, col, mass, ex, 0)
+    create_sphere(pos, rad, col, mass, ex, charge)
 
-def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge, sd_charge):
+def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge, sd_charge, gravity):
     dt = 0.001
     global vis
     global cmd_valid
@@ -217,7 +218,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge,
         # get updated mass, positions, momentums
 
         cmd_valid = False
-        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.98, bounds, False)
+        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.98, bounds, gravity)
         cmd_valid = True
 
         vis.poll_events()
@@ -253,6 +254,7 @@ class SetUpGUI:
             "ball_size": 0.5,  # Default ball size
             "pfunc": "0",  # Default potential function
             "color_random": True,  # Color is random by default
+            "gravity": False,
             "ball_avg_mass": 1,  # Default ball mass
             "ball_sd_mass": 0.1,
             "avg_charge": 0,
@@ -293,21 +295,28 @@ class SetUpGUI:
         self.color_check = tk.Checkbutton(self.master, variable=self.color_var)
         self.color_check.grid(row=4, column=1)
 
+        # enable gravity
+        self.grav_label = tk.Label(self.master, text="Enable gravity?")
+        self.grav_label.grid(row=5, column=0, sticky="e", padx=10)
+        self.grav_var = tk.BooleanVar(value=self.variables["gravity"])  # Create a BooleanVar
+        self.grav_check = tk.Checkbutton(self.master, variable=self.grav_var)
+        self.grav_check.grid(row=5, column=1)
+
         # Ball Mass
         self.mass_label = tk.Label(self.master, text="Ball Avg., sd. Mass:")
-        self.mass_label.grid(row=5, column=0, sticky="e", padx=10)
+        self.mass_label.grid(row=6, column=0, sticky="e", padx=10)
         self.mass_avg_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_avg_mass"]))
-        self.mass_avg_entry.grid(row=5, column=1)
+        self.mass_avg_entry.grid(row=6, column=1)
         self.mass_sd_entry = tk.Spinbox(self.master, from_=0, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_sd_mass"]))
-        self.mass_sd_entry.grid(row=5, column=2)
+        self.mass_sd_entry.grid(row=6, column=2)
 
         # Ball Charge
         self.charge_label = tk.Label(self.master, text="Avg., sd. Charge:")
-        self.charge_label.grid(row=6, column=0, sticky="e", padx=10)
+        self.charge_label.grid(row=7, column=0, sticky="e", padx=10)
         self.charge_avg_entry = tk.Spinbox(self.master, from_=-100, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["avg_charge"]))
-        self.charge_avg_entry.grid(row=6, column=1)
+        self.charge_avg_entry.grid(row=7, column=1)
         self.charge_sd_entry = tk.Spinbox(self.master, from_=0, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["sd_charge"]))
-        self.charge_sd_entry.grid(row=6, column=2)
+        self.charge_sd_entry.grid(row=7, column=2)
 
         # bounds
         self.bounds_label = tk.Label(self.master, text="Bounds (xlb,xub,ylb,yub,zlb,zub)")
@@ -325,6 +334,7 @@ class SetUpGUI:
         self.variables["ball_size"] = float(self.size_entry.get())
         self.variables["pfunc"] = self.pfunc_entry.get()
         self.variables["color_random"] = self.color_var.get()
+        self.variables["gravity"] = self.grav_var.get()
         self.variables["ball_avgmass"] = float(self.mass_avg_entry.get())
         self.variables["ball_sd_mass"] = float(self.mass_sd_entry.get())
         self.variables["avg_charge"] = float(self.charge_avg_entry.get())
@@ -345,7 +355,7 @@ def main():
     app = SetUpGUI(root)
     root.mainloop()  # Run the GUI event loop
     if app.variables["N"] and app.variables["pfunc"]:
-        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"], app.variables["avg_charge"], app.variables["sd_charge"])
+        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"], app.variables["avg_charge"], app.variables["sd_charge"], app.variables["gravity"])
 
 if __name__ == "__main__":
     main()
