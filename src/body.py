@@ -8,7 +8,7 @@ class Body:
     # m, dx, dy, dz, dpx, pdy, dpz
 
     # model contains the position
-    dynamics_matrix = np.zeros((0, 7))
+    dynamics_matrix = np.zeros((0, 8))
     objects = []
 
     # do not use xyz for position, its only initial position
@@ -33,6 +33,7 @@ class Body:
 
         Body.objects.append(self)
         dynamics = np.array([mass, 
+                             charge,
                              xyz[0], 
                              xyz[1],
                              xyz[2],

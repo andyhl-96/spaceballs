@@ -3,15 +3,24 @@ import sympy as sp
 from collision import check_collision
 
 def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: np.ndarray, e: float, bounds: tuple):
+    k = 1 # Coulumbs Constant
+    
     m_vec = data_matrix[:,0] # Reading mass of every object
+    q_vec = data_matrix[:,1]
 
-    x_vec = data_matrix[:,1] # Reading x center of mass potions of every object
-    y_vec = data_matrix[:,2] # Reading y center of mass potions of every object
-    z_vec = data_matrix[:,3] # Reading z center of mass potions of every object
+    x_vec = data_matrix[:,2] # Reading x center of mass potions of every object
+    y_vec = data_matrix[:,3] # Reading y center of mass potions of every object
+    z_vec = data_matrix[:,4] # Reading z center of mass potions of every object
 
-    px_vec = data_matrix[:,4] # Reading center of mass momentum x component for every vector
-    py_vec = data_matrix[:,5] # Reading center of mass momentum y component for every vector
-    pz_vec = data_matrix[:,6] # Reading center of mass momentum z compenent for every vector
+    print(x_vec)
+    r_vec = np.column_stack((x_vec,y_vec,z_vec))
+    r_hat = r_vec / np.linalg.norm(r_vec)
+
+    px_vec = data_matrix[:,5] # Reading center of mass momentum x component for every vector
+    py_vec = data_matrix[:,6] # Reading center of mass momentum y component for every vector
+    pz_vec = data_matrix[:,7] # Reading center of mass momentum z compenent for every vector
+
+    p_vec = np.column_stack((px_vec,py_vec,pz_vec))
 
     ext_force_x = ext_force[:,0]
     ext_force_y = ext_force[:,1]
@@ -81,12 +90,22 @@ def dynamics(data_matrix: np.ndarray, dt: float, potential_str: str, ext_force: 
     py_vec = matrix @ py_vec + dp[:,1]
     pz_vec = matrix @ pz_vec + dp[:,2]
 
+    v_vec = np.zeros((len(p_vec[1,:]),3))
+
+    for index in range(len(p_vec[1,:])):
+        v_vec[index,:] = p_vec[index,:] / m_vec[index]
+
+    b_vec = compute_b_field(r_vec,p_vec,q_vec,m_vec,k)
+    f_mag = compute_magnetic_force(r_vec,v_vec,q_vec,b_vec)
+
+    print(f_mag)
+
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
     dz = pz_vec/m_vec * dt # z update
-    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt
-    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
-    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
+    dpx = -dVdx(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt + np.dot(E_static_force(q_vec,r_vec,r_hat,k).flatten(),x_vec/np.linalg.norm(x_vec)) * dt 
+    dpy = -dVdy(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt + np.dot(E_static_force(q_vec,r_vec,r_hat,k).flatten(),y_vec/np.linalg.norm(y_vec)) * dt 
+    dpz = -dVdz(x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt + np.dot(E_static_force(q_vec,r_vec,r_hat,k).flatten(),z_vec/np.linalg.norm(z_vec)) * dt
 
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
@@ -241,6 +260,37 @@ def find_paralell_unit_vecs(perp_unit_vec, error_val):
         par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
 
         return par_unit_vec, par_unit_vec2
+
+def one_over_rs_square(r_vec,r_hat):
+    r_term = np.zeros((len(r_hat[:,1]), (len(r_hat[:,1]))))
+    for index1 in range(len(r_hat[:,1])):
+            for index2 in range(len(r_hat[:,1])):
+                if index2 != index1:
+                    r_term[index1,index2] = 1/np.dot((r_vec[index1,:] - r_vec[index2,:]),(r_vec[index1,:] - r_vec[index2,:]))
+                else:
+                    r_term[index1,index2] = 0
+    return r_term
+
+def E_static_force(q_vec: np.ndarray,r_vec: np.ndarray,r_hat: np.ndarray, k: float):
+    E_force = (k*(np.outer(q_vec,q_vec) - np.eye(len(q_vec)) @ q_vec**2) @ (one_over_rs_square(r_vec,r_hat) @ np.ones((len(r_vec[:,1]),1))))
+    return(E_force)
+
+
+
+# def B_force(q_vec,r_vec,r_hat,p_vec,m_vec,k):
+#     b_force = np.zeros((len(r_hat[:,1]),3))
+#     for index1 in range(len(r_hat[:,1])):
+#             for index2 in range(len(r_hat[:,1])):
+#                 if index2 != index1:
+#                     force_term = (k * q_vec[index1] * q_vec[index2] / np.dot((r_vec[index1,:] - r_vec[index2,:]),(r_vec[index1,:] - r_vec[index2,:])))
+#                     cross_prod_term = np.cross((p_vec[index2,:] / m_vec[index2]), np.cross((p_vec[index1,:] / m_vec[index1]), r_hat))
+#                     print(force_term)
+#                     print(f"Cross Product: {len(cross_prod_term)}")
+#                     b_force[index1] = force_term * cross_prod_term
+               
+#     return b_force
+
+
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
 #                   [4,5,6,5,3,2,1],
