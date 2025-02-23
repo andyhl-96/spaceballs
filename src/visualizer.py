@@ -178,7 +178,7 @@ def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body
     mass = float(body_mass_entry.get())
     ex = body_ex_var.get()
 
-    create_sphere(pos, rad, col, mass, ex)
+    create_sphere(pos, rad, col, mass, ex, 0)
 
     for item in scroll.winfo_children():
         item.destroy()
