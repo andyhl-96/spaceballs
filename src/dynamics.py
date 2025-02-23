@@ -2,14 +2,13 @@ import numpy as np
 import sympy as sp
 from collision import check_collision
 
-
 # solve the potential function once because solving it every ms
 # is silly
 def solve_potential(potential_str: str, data_matrix: np.ndarray):
     mass_vec = data_matrix[:, 0]
-    x_vec = data_matrix[:, 2]
-    y_vec = data_matrix[:, 3]
-    z_vec = data_matrix[:, 4]
+    x_vec = data_matrix[:, 1]
+    y_vec = data_matrix[:, 2]
+    z_vec = data_matrix[:, 3]
     # Defining sybolic variables
     m = sp.symbols('m') 
     x = sp.symbols('x')
@@ -33,72 +32,21 @@ def solve_potential(potential_str: str, data_matrix: np.ndarray):
     
 
 def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.ndarray, e: float, bounds: tuple):
-    k = 1
     m_vec = data_matrix[:,0] # Reading mass of every object
-    q_vec = data_matrix[:,1]
 
-    x_vec = data_matrix[:,2] # Reading x center of mass potions of every object
-    y_vec = data_matrix[:,3] # Reading y center of mass potions of every object
-    z_vec = data_matrix[:,4] # Reading z center of mass potions of every object
+    x_vec = data_matrix[:,1] # Reading x center of mass potions of every object
+    y_vec = data_matrix[:,2] # Reading y center of mass potions of every object
+    z_vec = data_matrix[:,3] # Reading z center of mass potions of every object
 
-    print(x_vec)
-    r_vec = np.column_stack((x_vec,y_vec,z_vec))
-    r_hat = r_vec / np.linalg.norm(r_vec)
-
-    px_vec = data_matrix[:,5] # Reading center of mass momentum x component for every vector
-    py_vec = data_matrix[:,6] # Reading center of mass momentum y component for every vector
-    pz_vec = data_matrix[:,7] # Reading center of mass momentum z compenent for every vector
-
-    p_vec = np.column_stack((px_vec,py_vec,pz_vec))
+    px_vec = data_matrix[:,4] # Reading center of mass momentum x component for every vector
+    py_vec = data_matrix[:,5] # Reading center of mass momentum y component for every vector
+    pz_vec = data_matrix[:,6] # Reading center of mass momentum z compenent for every vector
 
     ext_force_x = ext_force[:,0]
     ext_force_y = ext_force[:,1]
     ext_force_z = ext_force[:,2]
 
     n = len(x_vec) # Number of objects
-
-    # Lizard Testing Potential Input
-    #for index in np.arange(0,len(potential_str)):
-        # if((potential_str[index] != "x") and (potential_str[index] != "y") 
-        #    and (potential_str[index] != "z") and (potential_str[index] != "+")
-        #     and (potential_str[index] != "-") and (potential_str[index] != "/")
-        #     and (potential_str[index] != "*") and (potential_str[index] != " ")
-        #     and (potential_str[index] != "np.exp") and (potential_str[index] != "np.sqrt")
-        #     and (potential_str[index] != "1") and (potential_str[index] != "2")
-        #     and (potential_str[index] != "3") and (potential_str[index] != "4")
-        #     and (potential_str[index] != "5") and (potential_str[index] != "6")
-        #     and (potential_str[index] != "7") and (potential_str[index] != "8")
-        #     and (potential_str[index] != "9") and (potential_str[index] != "0")
-        #     and (potential_str[index] != "m") and (potential_str[index] != "(")
-        #     and (potential_str[index] != ")") and (potential_str[index] != ".")
-        #    ):
-        #     print(f"Potential function is invalid, can only depend on x,y,z and constants") 
-        #     return(0)
-    
-    # x = sp.symbols(f'x:{n}')
-    # y = sp.symbols(f'y:{n}')
-    # z = sp.symbols(f'z:{n}')
-    # px = sp.symbols(f'px:{n}')
-    # py = sp.symbols(f'py:{n}')
-    # pz = sp.symbols(f'pz:{n}')
-
-    # Defining sybolic variables
-    # m = sp.symbols('m') 
-    # x = sp.symbols('x')
-    # y = sp.symbols('y')
-    # z = sp.symbols('z')
-    # px = sp.symbols('px')
-    # py = sp.symbols('py')
-    # pz = sp.symbols('pz')
-
-    # potential = sp.sympify(potential_str) # Defining the potential function symbolically
-    # dVdx = sp.diff(potential, x) # Differentiaing the potential with respect to x
-    # dVdy = sp.diff(potential, y) # Differentiaing the potential with respect to y
-    # dVdz = sp.diff(potential, z) # Differentiaing the potential with respect to z
-
-    # dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
-    # dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
-    # dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
 
     dx = np.zeros((n,1))
     dy = np.zeros((n,1))
@@ -122,11 +70,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     dx = px_vec/m_vec * dt # x update
     dy = py_vec/m_vec * dt # y update
     dz = pz_vec/m_vec * dt # z update
-
-    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt + np.dot(E_static_force(q_vec,r_vec,r_hat,k).flatten(),x_vec/np.linalg.norm(x_vec)) * dt 
-    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt + np.dot(E_static_force(q_vec,r_vec,r_hat,k).flatten(),y_vec/np.linalg.norm(y_vec)) * dt 
-    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt + np.dot(E_static_force(q_vec,r_vec,r_hat,k).flatten(),z_vec/np.linalg.norm(z_vec)) * dt
-
+    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt
+    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
+    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
 
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
@@ -136,7 +82,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     py_vec = py_vec + dpy # New py
     pz_vec = pz_vec + dpz # New pz
 
-    data_matrix_output = np.column_stack((m_vec, q_vec, dx, dy, dz, px_vec, py_vec, pz_vec)) # Constructing output matrix
+    data_matrix_output = np.column_stack((m_vec, dx, dy, dz, px_vec, py_vec, pz_vec)) # Constructing output matrix
 
     # print(data_matrix_output)
     return(data_matrix_output)
@@ -281,37 +227,6 @@ def find_paralell_unit_vecs(perp_unit_vec, error_val):
         par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
 
         return par_unit_vec, par_unit_vec2
-
-def one_over_rs_square(r_vec,r_hat):
-    r_term = np.zeros((len(r_hat[:,1]), (len(r_hat[:,1]))))
-    for index1 in range(len(r_hat[:,1])):
-            for index2 in range(len(r_hat[:,1])):
-                if index2 != index1:
-                    r_term[index1,index2] = 1/np.dot((r_vec[index1,:] - r_vec[index2,:]),(r_vec[index1,:] - r_vec[index2,:]))
-                else:
-                    r_term[index1,index2] = 0
-    return r_term
-
-def E_static_force(q_vec: np.ndarray,r_vec: np.ndarray,r_hat: np.ndarray, k: float):
-    E_force = (k*(np.outer(q_vec,q_vec) - np.eye(len(q_vec)) @ q_vec**2) @ (one_over_rs_square(r_vec,r_hat) @ np.ones((len(r_vec[:,1]),1))))
-    return(E_force)
-
-
-
-# def B_force(q_vec,r_vec,r_hat,p_vec,m_vec,k):
-#     b_force = np.zeros((len(r_hat[:,1]),3))
-#     for index1 in range(len(r_hat[:,1])):
-#             for index2 in range(len(r_hat[:,1])):
-#                 if index2 != index1:
-#                     force_term = (k * q_vec[index1] * q_vec[index2] / np.dot((r_vec[index1,:] - r_vec[index2,:]),(r_vec[index1,:] - r_vec[index2,:])))
-#                     cross_prod_term = np.cross((p_vec[index2,:] / m_vec[index2]), np.cross((p_vec[index1,:] / m_vec[index1]), r_hat))
-#                     print(force_term)
-#                     print(f"Cross Product: {len(cross_prod_term)}")
-#                     b_force[index1] = force_term * cross_prod_term
-               
-#     return b_force
-
-
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
 #                   [4,5,6,5,3,2,1],
