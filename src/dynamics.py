@@ -31,8 +31,9 @@ def solve_potential(potential_str: str, data_matrix: np.ndarray):
 
     
 
-def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.ndarray, e: float, bounds: tuple):
-    m_vec = data_matrix[:,0] # Reading mass of every object
+def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.ndarray, e: float, bounds: tuple, sim_grav: bool):
+    m_vec = data_matrix[:, 0] # Reading mass of every object
+    q_vec = data_matrix[:, 7] # get charges
 
     x_vec = data_matrix[:,1] # Reading x center of mass potions of every object
     y_vec = data_matrix[:,2] # Reading y center of mass potions of every object
@@ -58,20 +59,34 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     collision_matrix, collision_vectors, collision_walls = check_collision(bounds)
 
     # get momentum update from collision
-    dp, matrix = collision_update(collision_matrix, collision_walls, px_vec, py_vec, pz_vec,collision_vectors,m_vec,e)
+    dp, matrix = collision_update(collision_matrix, collision_walls, px_vec, py_vec, pz_vec, collision_vectors, m_vec, e)
+    grav_x, grav_y, grav_z = gravitation(x_vec, y_vec, z_vec, m_vec)
+    elec_x, elec_y, elec_z = electrostatic(x_vec, y_vec, z_vec, q_vec)
+    if not sim_grav:
+        grav_x = 0
+        grav_y = 0
+        grav_z = 0
+    
+    G = 6900
+    k = 1
 
     px_vec = matrix @ px_vec + dp[:,0]
     py_vec = matrix @ py_vec + dp[:,1]
     pz_vec = matrix @ pz_vec + dp[:,2]
 
     # calculate change in momentum
-    dx = px_vec/m_vec * dt # x update
-    dy = py_vec/m_vec * dt # y update
-    dz = pz_vec/m_vec * dt # z update
-    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_x * dt
-    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_y * dt
-    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec)*dt + ext_force_z * dt 
+    dx = px_vec / m_vec * dt # x update
+    dy = py_vec / m_vec * dt # y update
+    dz = pz_vec / m_vec * dt # z update
+    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_x * dt + G * grav_x * dt + k * elec_x * dt
+    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_y * dt + G * grav_y * dt + k * elec_y * dt
+    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_z * dt + G * grav_z * dt + k * elec_z * dt
 
+    # this somehow fixes gravitation. do not ask how
+    dpx = dpx[:, 0]
+    dpy = dpy[:, 0]
+    dpz = dpz[:, 0]
+    
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
     z_vec = z_vec + dz # New z
@@ -81,14 +96,14 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     pz_vec = pz_vec + dpz # New pz
 
     # used to get velocity of each body
-    data_matrix_output = np.column_stack((m_vec, dx, dy, dz, px_vec, py_vec, pz_vec)) # Constructing output matrix
+    data_matrix_output = np.column_stack((m_vec, dx, dy, dz, px_vec, py_vec, pz_vec, q_vec)) # Constructing output matrix
 
     return(data_matrix_output)
 
 def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np.ndarray,p0y: np.ndarray,p0z: np.ndarray,collision_vectors: np.ndarray, m_vec: np.ndarray, e: float):
     epsilon = 0.001 # See where this is used (if difference in momenta is below this the momenta are forced to be equal)
 
-    p0_matrix = np.column_stack((p0x,p0y,p0z)) # Creating a matrix of momentum vectors
+    p0_matrix = np.column_stack((p0x, p0y, p0z)) # Creating a matrix of momentum vectors
     num_collisions = collision_matrix @ np.ones(len(collision_matrix[:,0])) # Vector of number of collisions for each ball
     
     dp_vec = np.zeros((len(num_collisions), 3))
@@ -123,6 +138,7 @@ def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np
             matrix = np.eye(len(num_collisions))
 
         # collisions for balls to balls
+        # case of 1 ball is known to be correct. general case may not be but is good enough
         if num_collisions[index] == 1:
             collide_partner_ind = np.nonzero(collision_matrix[index,:]) # Index of ball that is being collided with
             p0a = p0_matrix[index,:] # Momentum of ball of interest
@@ -206,7 +222,7 @@ def collision_update(collision_matrix: int, collision_walls: np.ndarray, p0x: np
             # #dp_vec[collide_partner_ind] = p0a - pfa
             # break
 
-            # general case, ignore 3
+        # general case, ignore 3
             # hold indices of other balls being collided with
             collide_partner_ind_vec = np.array([])
             # consider all possible balls in collision matrix
@@ -315,6 +331,100 @@ def find_paralell_unit_vecs(perp_unit_vec, error_val):
         par_unit_vec2 = np.cross(par_unit_vec,perp_unit_vec) / np.linalg.norm(np.cross(par_unit_vec,perp_unit_vec)) # 2nd Vector Paralell to collision plane
 
         return par_unit_vec, par_unit_vec2
+
+def gravitation(x_vec, y_vec, z_vec, m_vec):
+    # gets all pairs of mass products excluding with self
+    #adj_matrix = np.outer(m_vec, m_vec) - np.eye(len(m_vec)) @ m_vec**2
+
+
+
+    # matrix of r^2 values, same shape as adj
+    r_mat = np.zeros((len(m_vec), len(m_vec)))
+    # get the r^2 matrix
+    inv_x_mat = np.zeros(r_mat.shape)
+    inv_y_mat = np.zeros(r_mat.shape)
+    inv_z_mat = np.zeros(r_mat.shape)
+    for i in range(len(r_mat)):
+        for j in range(len(r_mat)):
+            if i != j:
+                r_veci = np.array([x_vec[i], y_vec[i], z_vec[i]])
+                r_vecj = np.array([x_vec[j], y_vec[j], z_vec[j]])
+                r = r_vecj - r_veci
+                # get 1/r^2 basically
+                inv_norm = (m_vec[j] * m_vec[i]) / (np.dot(r, r))
+
+                inv_norm_x = inv_norm * (x_vec[j] - x_vec[i]) / np.linalg.norm(r)
+                inv_norm_y = inv_norm * (y_vec[j] - y_vec[i]) / np.linalg.norm(r)
+                inv_norm_z = inv_norm * (z_vec[j] - z_vec[i]) / np.linalg.norm(r)
+
+                inv_x_mat[i, j] = inv_norm_x
+                inv_y_mat[i, j] = inv_norm_y
+                inv_z_mat[i, j] = inv_norm_z
+
+
+                r_mat[i, j] = inv_norm
+
+    # get a column vector of ones
+    ones_vec = np.ones((len(r_mat), 1))
+
+    inv_x_vec = inv_x_mat @ ones_vec
+    inv_y_vec = inv_y_mat @ ones_vec
+    inv_z_vec = inv_z_mat @ ones_vec
+
+    #r_vec = r_mat @ ones_vec
+
+    grav_x = inv_x_vec
+    grav_y = inv_y_vec
+    grav_z = inv_z_vec
+    #grav = adj_vec * r_vec
+
+    return grav_x, grav_y, grav_z
+
+
+def electrostatic(x_vec, y_vec, z_vec, q_vec):
+    # matrix of r^2 values, same shape as adj
+    r_mat = np.zeros((len(q_vec), len(q_vec)))
+    # get the r^2 matrix
+    inv_x_mat = np.zeros(r_mat.shape)
+    inv_y_mat = np.zeros(r_mat.shape)
+    inv_z_mat = np.zeros(r_mat.shape)
+    for i in range(len(r_mat)):
+        for j in range(len(r_mat)):
+            if i != j:
+                r_veci = np.array([x_vec[i], y_vec[i], z_vec[i]])
+                r_vecj = np.array([x_vec[j], y_vec[j], z_vec[j]])
+                r = r_vecj - r_veci
+                # get 1/r^2 basically
+                inv_norm = (q_vec[j] * q_vec[i]) / (np.dot(r, r))
+
+                inv_norm_x = inv_norm * (x_vec[j] - x_vec[i]) / np.linalg.norm(r)
+                inv_norm_y = inv_norm * (y_vec[j] - y_vec[i]) / np.linalg.norm(r)
+                inv_norm_z = inv_norm * (z_vec[j] - z_vec[i]) / np.linalg.norm(r)
+
+                inv_x_mat[i, j] = inv_norm_x
+                inv_y_mat[i, j] = inv_norm_y
+                inv_z_mat[i, j] = inv_norm_z
+
+
+                r_mat[i, j] = inv_norm
+
+    # get a column vector of ones
+    ones_vec = np.ones((len(r_mat), 1))
+
+    inv_x_vec = inv_x_mat @ ones_vec
+    inv_y_vec = inv_y_mat @ ones_vec
+    inv_z_vec = inv_z_mat @ ones_vec
+
+    #r_vec = r_mat @ ones_vec
+
+    elec_x = inv_x_vec
+    elec_y = inv_y_vec
+    elec_z = inv_z_vec
+    #grav = adj_vec * r_vec
+
+    return elec_x, elec_y, elec_z
+
+
 
 # dynamics(np.array([[1,2,3,5,3,2,1],
 #                   [4,5,6,5,3,2,1],

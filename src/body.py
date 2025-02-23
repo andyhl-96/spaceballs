@@ -10,7 +10,7 @@ class Body:
     # matrix holding params of every created body
     # used to perform dynamics and handle collision
     # probably the most important thing to get right
-    dynamics_matrix = np.zeros((0, 7))
+    dynamics_matrix = np.zeros((0, 8))
     objects = []
 
     # do not use xyz for position, its only initial position
@@ -38,9 +38,10 @@ class Body:
                              xyz[0], 
                              xyz[1],
                              xyz[2],
-                             np.random.normal(0, 1),
-                             np.random.normal(0, 1),
-                             np.random.normal(0, 1)])
+                             0,
+                             0,
+                             0,
+                             charge])
         if len(Body.dynamics_matrix) == 0:
             Body.dynamics_matrix = np.array([dynamics])
         else:
