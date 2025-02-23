@@ -226,7 +226,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
         # get updated mass, positions, momentums
 
         cmd_valid = False
-        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.98, bounds, True)
+        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.98, bounds, False)
         cmd_valid = True
 
         vis.poll_events()

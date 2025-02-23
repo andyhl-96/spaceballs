@@ -1,3 +1,4 @@
+from more_itertools import one
 import numpy as np
 import sympy as sp
 from collision import check_collision
@@ -62,13 +63,18 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     dp, matrix = collision_update(collision_matrix, collision_walls, px_vec, py_vec, pz_vec, collision_vectors, m_vec, e)
     grav_x, grav_y, grav_z = gravitation(x_vec, y_vec, z_vec, m_vec)
     elec_x, elec_y, elec_z = electrostatic(x_vec, y_vec, z_vec, q_vec)
+    mag_x, mag_y, mag_z = magnetism(x_vec, y_vec, z_vec, q_vec, px_vec, py_vec, pz_vec, m_vec)
+
     if not sim_grav:
         grav_x = 0
         grav_y = 0
         grav_z = 0
     
+    # constants
     G = 6900
-    k = 1
+    ke = 690
+    r = 0.01
+    km = r * ke
 
     px_vec = matrix @ px_vec + dp[:,0]
     py_vec = matrix @ py_vec + dp[:,1]
@@ -78,9 +84,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     dx = px_vec / m_vec * dt # x update
     dy = py_vec / m_vec * dt # y update
     dz = pz_vec / m_vec * dt # z update
-    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_x * dt + G * grav_x * dt + k * elec_x * dt
-    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_y * dt + G * grav_y * dt + k * elec_y * dt
-    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_z * dt + G * grav_z * dt + k * elec_z * dt
+    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_x * dt + G * grav_x * dt - ke * elec_x * dt + km * mag_x * dt
+    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_y * dt + G * grav_y * dt - ke * elec_y * dt + km * mag_y * dt
+    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_z * dt + G * grav_z * dt - ke * elec_z * dt + km * mag_z * dt
 
     # this somehow fixes gravitation. do not ask how
     dpx = dpx[:, 0]
@@ -423,6 +429,58 @@ def electrostatic(x_vec, y_vec, z_vec, q_vec):
     #grav = adj_vec * r_vec
 
     return elec_x, elec_y, elec_z
+
+def magnetism(x_vec, y_vec, z_vec, q_vec, px_vec, py_vec, pz_vec, m_vec):
+    # matrix of r^2 values, same shape as adj
+    r_mat = np.zeros((len(q_vec), len(q_vec)))
+    # get the r^2 matrix
+    x_mat = np.zeros(r_mat.shape)
+    y_mat = np.zeros(r_mat.shape)
+    z_mat = np.zeros(r_mat.shape)
+    for i in range(len(r_mat)):
+        for j in range(len(r_mat)):
+            if i != j:
+                r_veci = np.array([x_vec[i], y_vec[i], z_vec[i]])
+                r_vecj = np.array([x_vec[j], y_vec[j], z_vec[j]])
+                r = r_vecj - r_veci
+                # get 1/r^2 basically
+                inv_norm = (q_vec[j] * q_vec[i]) / (np.dot(r, r))
+
+                # velocity of body i
+                vx_i = px_vec[i] / m_vec[i]
+                vy_i = py_vec[i] / m_vec[i]
+                vz_i = pz_vec[i] / m_vec[i]
+
+                # velocity of body j
+                vx_j = px_vec[j] / m_vec[j]
+                vy_j = py_vec[j] / m_vec[j]
+                vz_j = pz_vec[j] / m_vec[j]
+
+                # displacement from i to j
+                dx = r[0]
+                dy = r[1]
+                dz = r[2]
+
+                x_comp = (vy_j * (vx_i * dy - vy_i * dx) - vz_j * (vz_i * dx - vx_i * dz)) / np.linalg.norm(r)
+                y_comp = (vz_j * (vy_i * dz - vz_i * dy) - vx_j * (vx_i * dy - vy_i * dx)) / np.linalg.norm(r)
+                z_comp = (vx_j * (vz_i * dx - vx_i * dz) - vy_j * (vy_i * dz - vz_i * dy)) / np.linalg.norm(r)
+
+                x_comp *= inv_norm
+                y_comp *= inv_norm
+                z_comp *= inv_norm
+
+                x_mat[i, j] = x_comp
+                y_mat[i, j] = y_comp
+                z_mat[i, j] = z_comp
+    
+    # get a column vector of ones
+    ones_vec = np.ones((len(r_mat), 1))
+    mag_x = x_mat @ ones_vec
+    mag_y = y_mat @ ones_vec
+    mag_z = z_mat @ ones_vec
+
+    return mag_x, mag_y, mag_z
+
 
 
 
