@@ -209,6 +209,12 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge,
 
     # tkinter test
     root = create_main_gui()
+
+    while len(Body.objects) <= 0:
+        root.update()
+        vis.poll_events()
+        vis.update_renderer()
+        time.sleep(dt)
     ## main loop ##
     while True:
         # update gui
@@ -354,7 +360,7 @@ def main():
     root = tk.Tk()
     app = SetUpGUI(root)
     root.mainloop()  # Run the GUI event loop
-    if app.variables["N"] and app.variables["pfunc"]:
+    if app.variables["pfunc"]:
         run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"], app.variables["avg_charge"], app.variables["sd_charge"], app.variables["gravity"])
 
 if __name__ == "__main__":
