@@ -41,7 +41,7 @@ class Body:
                              0,
                              0,
                              0,
-                             1])
+                             charge])
         if len(Body.dynamics_matrix) == 0:
             Body.dynamics_matrix = np.array([dynamics])
         else:
