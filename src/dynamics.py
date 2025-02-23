@@ -57,6 +57,49 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
 
     n = len(x_vec) # Number of objects
 
+    # Lizard Testing Potential Input
+    #for index in np.arange(0,len(potential_str)):
+        # if((potential_str[index] != "x") and (potential_str[index] != "y") 
+        #    and (potential_str[index] != "z") and (potential_str[index] != "+")
+        #     and (potential_str[index] != "-") and (potential_str[index] != "/")
+        #     and (potential_str[index] != "*") and (potential_str[index] != " ")
+        #     and (potential_str[index] != "np.exp") and (potential_str[index] != "np.sqrt")
+        #     and (potential_str[index] != "1") and (potential_str[index] != "2")
+        #     and (potential_str[index] != "3") and (potential_str[index] != "4")
+        #     and (potential_str[index] != "5") and (potential_str[index] != "6")
+        #     and (potential_str[index] != "7") and (potential_str[index] != "8")
+        #     and (potential_str[index] != "9") and (potential_str[index] != "0")
+        #     and (potential_str[index] != "m") and (potential_str[index] != "(")
+        #     and (potential_str[index] != ")") and (potential_str[index] != ".")
+        #    ):
+        #     print(f"Potential function is invalid, can only depend on x,y,z and constants") 
+        #     return(0)
+    
+    # x = sp.symbols(f'x:{n}')
+    # y = sp.symbols(f'y:{n}')
+    # z = sp.symbols(f'z:{n}')
+    # px = sp.symbols(f'px:{n}')
+    # py = sp.symbols(f'py:{n}')
+    # pz = sp.symbols(f'pz:{n}')
+
+    # Defining sybolic variables
+    # m = sp.symbols('m') 
+    # x = sp.symbols('x')
+    # y = sp.symbols('y')
+    # z = sp.symbols('z')
+    # px = sp.symbols('px')
+    # py = sp.symbols('py')
+    # pz = sp.symbols('pz')
+
+    # potential = sp.sympify(potential_str) # Defining the potential function symbolically
+    # dVdx = sp.diff(potential, x) # Differentiaing the potential with respect to x
+    # dVdy = sp.diff(potential, y) # Differentiaing the potential with respect to y
+    # dVdz = sp.diff(potential, z) # Differentiaing the potential with respect to z
+
+    # dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
+    # dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
+    # dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
+
     dx = np.zeros((n,1))
     dy = np.zeros((n,1))
     dz = np.zeros((n,1))
