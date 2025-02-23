@@ -1,6 +1,8 @@
 # physics-sim
-Simple physics simulator made for Boilermake 12.
+Physics simulator made for Boilermake 12. We use open3d for visualization and implement our own physics processes and collision system. We support classical mechanical simulations as well as electromagnetic.
 
 ## Dependencies
 - numpy
 - open3d
+- tkinter
+- sympy

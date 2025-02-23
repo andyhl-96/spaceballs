@@ -1,7 +1,3 @@
-import glob
-import tkinter
-from turtle import left, mainloop, update
-import comm
 import numpy as np
 import open3d as o3d
 import time
@@ -94,7 +90,7 @@ def update_dynamics(dynam_new):
 def create_main_gui():
     root = tk.Tk()
     root.title("SIMCONTROL")
-    root.geometry("640x1080")
+    root.geometry("640x1080+1280+0")
 
     # top frame for ball display
     top_frame = tk.Frame(root, width=640, height=256)
