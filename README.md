@@ -1,5 +1,7 @@
 # spaceballs
-Physics simulator made for Boilermake 12. We use open3d for visualization and implement our own physics processes and collision system, which is heavily based on the Hamiltonian equations of motion. There is strong emphasis and support for static potential functions, and we support classical mechanical simulations as well as electromagnetic interactions. Spaceballs is a great way to gain an intuition of complex high dimensional Hamiltonian systems.
+Spaceballs is derived from Hamiltonian equations of motion which allows for the incorporation and emphasis of potential and potential functions. One can enter an arbitrary static potential function depending on position, constants, mass, and electric charge. The model is able to simulate collisions based on a coefficient of restitution, allowing for elastic and inelastic collisions. Furthermore, one can populate a space of any number of particles to observe how the interact gravitationally, and electromagnetically. Spaceballs does well on small to medium sized systems and allows for insight into how such systems involve by observing motion of bodies in that system
+
+We hope to improve Spaceballs to be a more general physics simulator, being able to handle not only balls, but other kinds of objects and collision geometry. We know Spaceballs is not intended to be used in high precision environments, but we believe it can be made into a valuable tool to observe how complex dynamical systems evolve. It allows for an easier time to develop an intuitive understanding of how such systems work.
 
 ## Dependencies
 - numpy
