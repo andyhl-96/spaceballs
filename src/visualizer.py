@@ -24,14 +24,14 @@ external_forces = np.zeros((0, 3))
 cmd_valid = True
 
 # some helper functions
-def create_sphere(position: list, radius: float, color: list, mass: float, exclude: bool):
+def create_sphere(position: list, radius: float, color: list, mass: float, exclude: bool, charge: float):
     global cmd_valid
     global external_forces
     if cmd_valid:
         sphere = o3d.geometry.TriangleMesh.create_sphere(radius, 20, False)
         sphere.translate(position)
         sphere.paint_uniform_color(color)
-        body = Body(xyz = np.array(position), mass = mass, geom = radius, model = sphere, exclude = exclude)
+        body = Body(xyz = np.array(position), mass = mass, geom = radius, model = sphere, exclude = exclude, charge=charge)
         if len(external_forces) == 0:
             external_forces = np.array([[0, 0, 0]])
         else:
@@ -95,6 +95,7 @@ def create_main_gui():
     root = tk.Tk()
     root.title("SIMCONTROL")
     root.geometry("640x1080")
+    
 
     # top frame for ball display
     top_frame = tk.Frame(root, width=640, height=256)
@@ -189,7 +190,7 @@ def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body
         label = tk.Label(scroll, text=str(Body.objects[i]))
         label.pack(side=TOP)
 
-def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
+def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge, sd_charge):
     dt = 0.001
     global vis
     global cmd_valid
@@ -201,7 +202,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
     # create_sphere([-1, 0, 0], 0.5, [0, 1, 0], 0.25, exclude=False)
     for index in range(N):
         color = [np.random.random(), np.random.random(), np.random.random()] if color_random else [1, 0, 0]
-        create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, np.abs(np.random.normal(avg_mass, sd_mass)), exclude=False)
+        create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, np.abs(np.random.normal(avg_mass, sd_mass)), exclude=False, charge = np.random.normal(avg_charge,sd_charge))
     
     draw_axes(bounds)
 
@@ -260,10 +261,12 @@ class SetUpGUI:
         self.variables = {
             "N": 5,  # Number of objects
             "ball_size": 0.5,  # Default ball size
-            "pfunc": "m*98*y",  # Default potential function
+            "pfunc": "0",  # Default potential function
             "color_random": True,  # Color is random by default
             "ball_avg_mass": 1,  # Default ball mass
-            "ball_sd_mass": 1,
+            "ball_sd_mass": 0.1,
+            "avg_charge": 0,
+            "sd_charge": 0,
             "bounds": "-10 10 -10 10 -10 10" # bounds
         }
 
@@ -305,18 +308,26 @@ class SetUpGUI:
         self.mass_label.grid(row=5, column=0, sticky="e", padx=10)
         self.mass_avg_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_avg_mass"]))
         self.mass_avg_entry.grid(row=5, column=1)
-        self.mass_sd_entry = tk.Spinbox(self.master, from_=0.1, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_sd_mass"]))
+        self.mass_sd_entry = tk.Spinbox(self.master, from_=0, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["ball_sd_mass"]))
         self.mass_sd_entry.grid(row=5, column=2)
+
+        # Ball Charge
+        self.charge_label = tk.Label(self.master, text="Avg., sd. Charge:")
+        self.charge_label.grid(row=6, column=0, sticky="e", padx=10)
+        self.charge_avg_entry = tk.Spinbox(self.master, from_=-100, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["avg_charge"]))
+        self.charge_avg_entry.grid(row=6, column=1)
+        self.charge_sd_entry = tk.Spinbox(self.master, from_=0, to=100, increment=0.1, width=10, textvariable=tk.DoubleVar(value=self.variables["sd_charge"]))
+        self.charge_sd_entry.grid(row=6, column=2)
 
         # bounds
         self.bounds_label = tk.Label(self.master, text="Bounds (xlb,xub,ylb,yub,zlb,zub)")
-        self.bounds_label.grid(row=6, column=0, sticky="e", padx=10)
+        self.bounds_label.grid(row=8, column=0, sticky="e", padx=10)
         self.bounds_entry = tk.Entry(self.master, width=40, textvariable=tk.StringVar(value=self.variables["bounds"]))
-        self.bounds_entry.grid(row=6, column=1)
+        self.bounds_entry.grid(row=8, column=1)
         
         # "Start Simulation" Button
         self.start_button = tk.Button(self.master, text="Start Simulation", command=self.start_simulation)
-        self.start_button.grid(row=7, columnspan=2, pady=20)
+        self.start_button.grid(row=9, columnspan=2, pady=20)
 
     def start_simulation(self):
         # Save inputs to variables
@@ -326,6 +337,8 @@ class SetUpGUI:
         self.variables["color_random"] = self.color_var.get()
         self.variables["ball_avgmass"] = float(self.mass_avg_entry.get())
         self.variables["ball_sd_mass"] = float(self.mass_sd_entry.get())
+        self.variables["avg_charge"] = float(self.charge_avg_entry.get())
+        self.variables["sd_charge"] = float(self.charge_sd_entry.get())
         bounds_str = self.bounds_entry.get()
         # change bounds to a 6 tuple
         bounds_list = bounds_str.split(' ')
@@ -342,7 +355,7 @@ def main():
     app = SetUpGUI(root)
     root.mainloop()  # Run the GUI event loop
     if app.variables["N"] and app.variables["pfunc"]:
-        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"])
+        run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"], app.variables["avg_charge"], app.variables["sd_charge"])
 
 if __name__ == "__main__":
     main()

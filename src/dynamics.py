@@ -1,4 +1,3 @@
-from more_itertools import one
 import numpy as np
 import sympy as sp
 from collision import check_collision
