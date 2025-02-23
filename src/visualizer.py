@@ -43,7 +43,7 @@ def create_box(position: list, w: float, d: float, h: float, color: list, mass: 
     if external_forces == None:
         external_forces = np.array([0, 0, 0])
     else:
-        external_forces = np.vstack((external_forces, [0, 0, 0]))
+        external_forces = np.vstack([external_forces, [0, 0, 0]])
     vis.add_geometry(Body.objects[-1].model)
 
 def draw_axes(bounds):
@@ -155,16 +155,13 @@ def create_main_gui():
 def apply_force(body_label, force_label):
     bodies_str = body_label.get()
     force_str = force_label.get()
-    body_label.set("")
-    force_label.set("")
-
+    
     bodies = bodies_str.split(" ")
     force = force_str.split(" ")
 
-
     for i in bodies:
-        external_forces[int(i)] = np.array([float(force[0]), float(force[1]), float(force[2])])
-
+        i = int(i)
+        external_forces[i] = np.array([float(force[0]), float(force[1]), float(force[2])])
 def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body_ex_var, body_charge_entry):
     pos_str = body_pos_str.get()
     pos = pos_str.split(' ')
@@ -224,7 +221,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge,
         # get updated mass, positions, momentums
 
         cmd_valid = False
-        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.0, bounds, gravity)
+        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.975, bounds, gravity)
         cmd_valid = True
 
         vis.poll_events()

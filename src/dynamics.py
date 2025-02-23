@@ -84,14 +84,10 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     dx = px_vec / m_vec * dt # x update
     dy = py_vec / m_vec * dt # y update
     dz = pz_vec / m_vec * dt # z update
+
     dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec, q_vec) * dt + ext_force_x * dt + G * grav_x * dt - ke * elec_x * dt + km * mag_x * dt
     dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec, q_vec) * dt + ext_force_y * dt + G * grav_y * dt - ke * elec_y * dt + km * mag_y * dt
     dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec, q_vec) * dt + ext_force_z * dt + G * grav_z * dt - ke * elec_z * dt + km * mag_z * dt
-
-    # this somehow fixes gravitation. do not ask how
-    dpx = dpx[:, 0]
-    dpy = dpy[:, 0]
-    dpz = dpz[:, 0]
     
     x_vec = x_vec + dx # New x
     y_vec = y_vec + dy # New y
@@ -384,7 +380,7 @@ def gravitation(x_vec, y_vec, z_vec, m_vec):
     grav_z = inv_z_vec
     #grav = adj_vec * r_vec
 
-    return grav_x, grav_y, grav_z
+    return np.transpose(grav_x)[0], np.transpose(grav_y)[0], np.transpose(grav_z)[0]
 
 
 def electrostatic(x_vec, y_vec, z_vec, q_vec):
@@ -428,7 +424,7 @@ def electrostatic(x_vec, y_vec, z_vec, q_vec):
     elec_z = inv_z_vec
     #grav = adj_vec * r_vec
 
-    return elec_x, elec_y, elec_z
+    return np.transpose(elec_x)[0], np.transpose(elec_y)[0], np.transpose(elec_z)[0]
 
 def magnetism(x_vec, y_vec, z_vec, q_vec, px_vec, py_vec, pz_vec, m_vec):
     # matrix of r^2 values, same shape as adj
@@ -479,7 +475,7 @@ def magnetism(x_vec, y_vec, z_vec, q_vec, px_vec, py_vec, pz_vec, m_vec):
     mag_y = y_mat @ ones_vec
     mag_z = z_mat @ ones_vec
 
-    return mag_x, mag_y, mag_z
+    return np.transpose(mag_x)[0], np.transpose(mag_y)[0], np.transpose(mag_z)[0]
 
 
 
