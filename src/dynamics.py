@@ -11,7 +11,8 @@ def solve_potential(potential_str: str, data_matrix: np.ndarray):
     y_vec = data_matrix[:, 2]
     z_vec = data_matrix[:, 3]
     # Defining sybolic variables
-    m = sp.symbols('m') 
+    m = sp.symbols('m')
+    q = sp.symbols('q')
     x = sp.symbols('x')
     y = sp.symbols('y')
     z = sp.symbols('z')
@@ -24,9 +25,9 @@ def solve_potential(potential_str: str, data_matrix: np.ndarray):
     dVdy = sp.diff(potential, y) # Differentiaing the potential with respect to y
     dVdz = sp.diff(potential, z) # Differentiaing the potential with respect to z
 
-    dVdx = sp.lambdify((x, y, z, m), dVdx, 'numpy')
-    dVdy = sp.lambdify((x, y, z, m), dVdy, 'numpy')
-    dVdz = sp.lambdify((x, y, z, m), dVdz, 'numpy')
+    dVdx = sp.lambdify((x, y, z, m, q), dVdx, 'numpy')
+    dVdy = sp.lambdify((x, y, z, m, q), dVdy, 'numpy')
+    dVdz = sp.lambdify((x, y, z, m, q), dVdz, 'numpy')
 
     return (dVdx, dVdy, dVdz)
 
@@ -73,7 +74,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     # constants
     G = 6900
     ke = 690
-    r = 0.01
+    r = 0.001
     km = r * ke
 
     px_vec = matrix @ px_vec + dp[:,0]
@@ -84,9 +85,9 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     dx = px_vec / m_vec * dt # x update
     dy = py_vec / m_vec * dt # y update
     dz = pz_vec / m_vec * dt # z update
-    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_x * dt + G * grav_x * dt - ke * elec_x * dt + km * mag_x * dt
-    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_y * dt + G * grav_y * dt - ke * elec_y * dt + km * mag_y * dt
-    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec) * dt + ext_force_z * dt + G * grav_z * dt - ke * elec_z * dt + km * mag_z * dt
+    dpx = -gradV[0](x_vec, y_vec, z_vec, m_vec, q_vec) * dt + ext_force_x * dt + G * grav_x * dt - ke * elec_x * dt + km * mag_x * dt
+    dpy = -gradV[1](x_vec, y_vec, z_vec, m_vec, q_vec) * dt + ext_force_y * dt + G * grav_y * dt - ke * elec_y * dt + km * mag_y * dt
+    dpz = -gradV[2](x_vec, y_vec, z_vec, m_vec, q_vec) * dt + ext_force_z * dt + G * grav_z * dt - ke * elec_z * dt + km * mag_z * dt
 
     # this somehow fixes gravitation. do not ask how
     dpx = dpx[:, 0]
