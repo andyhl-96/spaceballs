@@ -7,7 +7,9 @@ class Body:
     # static variable to keep track of all bodies
     # m, dx, dy, dz, dpx, pdy, dpz
 
-    # model contains the position
+    # matrix holding params of every created body
+    # used to perform dynamics and handle collision
+    # probably the most important thing to get right
     dynamics_matrix = np.zeros((0, 7))
     objects = []
 

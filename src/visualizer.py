@@ -108,10 +108,10 @@ def create_main_gui():
         label = tk.Label(scroll, textvariable=text, bg="white")
         label.pack(side=TOP)
 
-    scrollbar = tk.Scrollbar(scroll)
-    scrollbar.pack(side=RIGHT, fill=Y)
-    scroll.config(yscrollcommand=scrollbar.set)
-    scrollbar.config(command = scroll.yview) 
+    #scrollbar = tk.Scrollbar(scroll)
+    #scrollbar.pack(side=RIGHT, fill=Y)
+    #scroll.config(yscrollcommand=scrollbar.set)
+    #scrollbar.config(command = scroll.yview) 
     scroll.pack(side=LEFT)
 
     mid_frame = tk.Frame(root)
