@@ -99,21 +99,7 @@ def create_main_gui():
 
     # top frame for ball display
     top_frame = tk.Frame(root, width=640, height=256)
-    top_frame.pack(side=TOP)
-
-    # listbox for ball display
-    scroll = tk.Listbox(top_frame)
-    for i in range(len(Body.objects)):
-        text = StringVar()
-        text.set(str(i) + str(Body.objects[i]))
-        label = tk.Label(scroll, textvariable=text, bg="white")
-        label.pack(side=TOP)
-
-    #scrollbar = tk.Scrollbar(scroll)
-    #scrollbar.pack(side=RIGHT, fill=Y)
-    #scroll.config(yscrollcommand=scrollbar.set)
-    #scrollbar.config(command = scroll.yview) 
-    scroll.pack(side=LEFT)
+    top_frame.pack(side=TOP)    
 
     mid_frame = tk.Frame(root)
     # options
@@ -140,18 +126,32 @@ def create_main_gui():
     body_rad_entry = tk.Spinbox(bottom_frame, from_=0.1, to=100, textvariable=tk.DoubleVar(value=0.5))
     body_color_str = StringVar()
     body_color_entry = tk.Entry(bottom_frame, textvariable=body_color_str)
-    body_mass_entry = tk.Spinbox(bottom_frame, from_=0.1, to=100, textvariable=tk.DoubleVar(value=0.5))
+    add_body_label = tk.Label(bottom_frame, textvariable=StringVar(value="Mass"))
+    body_mass_entry = tk.Spinbox(bottom_frame, from_=0.1, to=100, text="Mass", textvariable=tk.DoubleVar(value=0.5))
+    # add_body_label = tk.Label(bottom_frame, textvariable=StringVar(value="Press 1 I dare you ;)"))
     body_ex_var = tk.BooleanVar()
+    body_charge_entry = tk.Spinbox(bottom_frame,from_ = -100, to = 100, text = "SPACE BALLS!!")
+    body_label2 = tk.Label(bottom_frame, textvariable=StringVar(value="Charge"))
     body_ex_entry = tk.Checkbutton(bottom_frame, textvariable=body_ex_var)
-    add_body_button = tk.Button(bottom_frame, text="Add", command=partial(add_body, body_pos_str, body_rad_entry, body_color_str, body_mass_entry, body_ex_var, scroll))
-    add_body_label.pack(side=TOP)
+    add_body_button = tk.Button(bottom_frame, text="Add (Quick Maths!)", command=partial(add_body, body_pos_str, body_rad_entry, body_color_str, body_mass_entry, body_ex_var))
+    color_label = tk.Label(bottom_frame, text = "Color (RGB))")
+    exclude_label = tk.Label(bottom_frame, text="Exclude (excludes from physics simulation)")
+    radius_label = tk.Label(bottom_frame, text="Radius")
+
     add_body_entry.pack(side=TOP)
+    radius_label.pack(side=TOP)
     body_rad_entry.pack(side=TOP)
+    color_label.pack(side=TOP)
     body_color_entry.pack(side=TOP)
+    add_body_label.pack(side=TOP)
     body_mass_entry.pack(side=TOP)
+    body_label2.pack(side=TOP)
+    body_charge_entry.pack(side=TOP)
+    exclude_label.pack(side=TOP)
     body_ex_entry.pack(side=TOP)
     add_body_button.pack(side=TOP)
     bottom_frame.pack(side=TOP)
+   
 
     return root
 
@@ -169,7 +169,7 @@ def apply_force(body_label, force_label):
     for i in bodies:
         external_forces[int(i)] = np.array([float(force[0]), float(force[1]), float(force[2])])
 
-def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body_ex_var, scroll):
+def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body_ex_var):
     pos_str = body_pos_str.get()
     pos = pos_str.split(' ')
     color_str = body_color_var.get()
@@ -183,12 +183,6 @@ def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body
     ex = body_ex_var.get()
 
     create_sphere(pos, rad, col, mass, ex)
-
-    for item in scroll.winfo_children():
-        item.destroy()
-    for i in range(len(Body.objects)):
-        label = tk.Label(scroll, text=str(Body.objects[i]))
-        label.pack(side=TOP)
 
 def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge, sd_charge):
     dt = 0.001
