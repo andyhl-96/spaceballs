@@ -7,9 +7,9 @@ from collision import check_collision
 # is silly
 def solve_potential(potential_str: str, data_matrix: np.ndarray):
     mass_vec = data_matrix[:, 0]
-    x_vec = data_matrix[:, 1]
-    y_vec = data_matrix[:, 2]
-    z_vec = data_matrix[:, 3]
+    x_vec = data_matrix[:, 2]
+    y_vec = data_matrix[:, 3]
+    z_vec = data_matrix[:, 4]
     # Defining sybolic variables
     m = sp.symbols('m') 
     x = sp.symbols('x')
@@ -93,7 +93,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     py_vec = py_vec + dpy # New py
     pz_vec = pz_vec + dpz # New pz
 
-    data_matrix_output = np.column_stack((m_vec, dx, dy, dz, px_vec, py_vec, pz_vec)) # Constructing output matrix
+    data_matrix_output = np.column_stack((m_vec, q_vec, dx, dy, dz, px_vec, py_vec, pz_vec)) # Constructing output matrix
 
     # print(data_matrix_output)
     return(data_matrix_output)

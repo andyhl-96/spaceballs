@@ -87,8 +87,8 @@ def update_dynamics(dynam_new):
     Body.dynamics_matrix = dynam_new
     for i in range(len(Body.dynamics_matrix)):
         bodypos = Body.objects[i].position()
-        for j in range(1, 4):
-            Body.dynamics_matrix[i, j] = bodypos[j - 1]
+        for j in range(2, 5):
+            Body.dynamics_matrix[i, j] = bodypos[j - 2]
 
 # create the main gui for control
 def create_main_gui():
