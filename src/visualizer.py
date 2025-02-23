@@ -1,5 +1,7 @@
+import glob
 import tkinter
-from turtle import mainloop, update
+from turtle import left, mainloop, update
+import comm
 import numpy as np
 import open3d as o3d
 import time
@@ -17,56 +19,35 @@ view_control = vis.get_view_control()
 view_control.set_zoom(100)
 render_options = vis.get_render_option()
 render_options.background_color = [0, 0, 0]
-external_forces = None
+external_forces = np.zeros((0, 3))
 # lock variable for command exec
-cmd_valid = False
-
-def show_input_dialog():
-    # Create the root window (it will not appear)
-    root = tk.Tk()
-    root.withdraw()  # Hide the root window
-
-
-    option = simpledialog.askstring("Specify an option ([s]elect, [f]orce)", "Enter option")
-
-    if option.upper() == "S":
-        index = simpledialog.askinteger("Pick a body", "Enter number:")
-        model = Body.objects[index].model
-        highlight = model.get_axis_aligned_bounding_box()
-        vis.add_geometry(highlight)
-
-    elif option.upper() == "F":
-        index = simpledialog.askinteger("Pick a body", "Enter number:")
-        
-        fx = simpledialog.askfloat("Modify external force x", "Enter value")
-        fy = simpledialog.askfloat("Modify external force y", "Enter value")
-        fz = simpledialog.askfloat("Modify external force z", "Enter value")
-
-        external_forces[index] = np.array([fx, fy, fz])
-
-
-def cmd_input(action):
-    global cmd_valid
-    # kinda stupid but we shouldnt modify stuff when dynamics is being called
-    if cmd_valid:
-        show_input_dialog()
-
-vis.register_key_callback(47, cmd_input)
-
+cmd_valid = True
 
 # some helper functions
 def create_sphere(position: list, radius: float, color: list, mass: float, exclude: bool):
-    sphere = o3d.geometry.TriangleMesh.create_sphere(radius, 20, False)
-    sphere.translate(position)
-    sphere.paint_uniform_color(color)
-    body = Body(xyz = np.array(position), mass = mass, geom = radius, model = sphere, exclude = exclude)
-    vis.add_geometry(Body.objects[-1].model)
+    global cmd_valid
+    global external_forces
+    if cmd_valid:
+        sphere = o3d.geometry.TriangleMesh.create_sphere(radius, 20, False)
+        sphere.translate(position)
+        sphere.paint_uniform_color(color)
+        body = Body(xyz = np.array(position), mass = mass, geom = radius, model = sphere, exclude = exclude)
+        if len(external_forces) == 0:
+            external_forces = np.array([[0, 0, 0]])
+        else:
+            external_forces = np.vstack((external_forces, [0, 0, 0]))
+        vis.add_geometry(Body.objects[-1].model)
 
 def create_box(position: list, w: float, d: float, h: float, color: list, mass: float, exclude: bool):
+    global external_forces
     box = o3d.geometry.TriangleMesh.create_box(width = w, depth = d, height = h)
     box.translate(position)
     box.paint_uniform_color(color)
     body = Body(xyz = np.array(position), mass = mass, model = box, geom = 0, exclude = exclude)
+    if external_forces == None:
+        external_forces = np.array([0, 0, 0])
+    else:
+        external_forces = np.vstack((external_forces, [0, 0, 0]))
     vis.add_geometry(Body.objects[-1].model)
 
 def draw_axes(bounds):
@@ -113,39 +94,100 @@ def update_dynamics(dynam_new):
 def create_main_gui():
     root = tk.Tk()
     root.title("SIMCONTROL")
-    root.geometry("640x960")
+    root.geometry("640x1080")
 
     # top frame for ball display
-    top_frame = tk.Frame(root)
+    top_frame = tk.Frame(root, width=640, height=256)
     top_frame.pack(side=TOP)
 
     # listbox for ball display
-    scroll = tk.Listbox(top_frame, width=720, height=256)
+    scroll = tk.Listbox(top_frame)
     for i in range(len(Body.objects)):
         text = StringVar()
-        text.set(str(Body.objects[i]))
-        label = tk.Label(scroll, textvariable=text)
+        text.set(str(i) + str(Body.objects[i]))
+        label = tk.Label(scroll, textvariable=text, bg="white")
         label.pack(side=TOP)
 
     scrollbar = tk.Scrollbar(scroll)
-    scrollbar.pack(side=RIGHT)
-    scroll.pack(side=TOP)
+    scrollbar.pack(side=RIGHT, fill=Y)
+    scroll.config(yscrollcommand=scrollbar.set)
+    scrollbar.config(command = scroll.yview) 
+    scroll.pack(side=LEFT)
 
     mid_frame = tk.Frame(root)
     # options
     # pass the body indices as a string, force comps as numbers
-    body_list = tk.Entry(mid_frame)
-    force_button = tk.Button(mid_frame, text="Apply Force", command=partial(apply_force, ))
-
-
-    mid_frame.pack(side=TOP)
+    body_list_str = StringVar()
+    force_entry_str = StringVar()
+    body_list_label = tk.Label(mid_frame, textvariable=StringVar(value="Bodies"))
+    body_list = tk.Entry(mid_frame, textvariable=body_list_str)
+    force_entry_label = tk.Label(mid_frame, textvariable=StringVar(value="Force"))
+    force_entry = tk.Entry(mid_frame, textvariable=force_entry_str)
+    force_button = tk.Button(mid_frame, text="Apply Force", command=partial(apply_force, body_list_str, force_entry_str))
+    body_list_label.pack(side=TOP)
     body_list.pack(side=TOP)
+    force_entry_label.pack(side=TOP)
+    force_entry.pack(side=TOP)
     force_button.pack(side=TOP)
+    mid_frame.pack(side=TOP)
+
+    # bottom panel
+    bottom_frame = tk.Frame(root)
+    add_body_label = tk.Label(bottom_frame, textvariable=StringVar(value="Add body"))
+    body_pos_str = StringVar()
+    add_body_entry = tk.Entry(bottom_frame, textvariable=body_pos_str)
+    body_rad_entry = tk.Spinbox(bottom_frame, from_=0.1, to=100, textvariable=tk.DoubleVar(value=0.5))
+    body_color_str = StringVar()
+    body_color_entry = tk.Entry(bottom_frame, textvariable=body_color_str)
+    body_mass_entry = tk.Spinbox(bottom_frame, from_=0.1, to=100, textvariable=tk.DoubleVar(value=0.5))
+    body_ex_var = tk.BooleanVar()
+    body_ex_entry = tk.Checkbutton(bottom_frame, textvariable=body_ex_var)
+    add_body_button = tk.Button(bottom_frame, text="Add", command=partial(add_body, body_pos_str, body_rad_entry, body_color_str, body_mass_entry, body_ex_var, scroll))
+    add_body_label.pack(side=TOP)
+    add_body_entry.pack(side=TOP)
+    body_rad_entry.pack(side=TOP)
+    body_color_entry.pack(side=TOP)
+    body_mass_entry.pack(side=TOP)
+    body_ex_entry.pack(side=TOP)
+    add_body_button.pack(side=TOP)
+    bottom_frame.pack(side=TOP)
+
     return root
 
 # gui callbacks
-def apply_force(bodies: str, fx, fy, fz):
-    print("force")
+def apply_force(body_label, force_label):
+    bodies_str = body_label.get()
+    force_str = force_label.get()
+    body_label.set("")
+    force_label.set("")
+
+    bodies = bodies_str.split(" ")
+    force = force_str.split(" ")
+
+
+    for i in bodies:
+        external_forces[int(i)] = np.array([float(force[0]), float(force[1]), float(force[2])])
+
+def add_body(body_pos_str, body_rad_entry, body_color_var, body_mass_entry, body_ex_var, scroll):
+    pos_str = body_pos_str.get()
+    pos = pos_str.split(' ')
+    color_str = body_color_var.get()
+    col = color_str.split(' ')
+    for i in range(len(pos)):
+        pos[i] = float(pos[i])
+        col[i] = float(col[i])
+    rad = float(body_rad_entry.get())
+
+    mass = float(body_mass_entry.get())
+    ex = body_ex_var.get()
+
+    create_sphere(pos, rad, col, mass, ex)
+
+    for item in scroll.winfo_children():
+        item.destroy()
+    for i in range(len(Body.objects)):
+        label = tk.Label(scroll, text=str(Body.objects[i]))
+        label.pack(side=TOP)
 
 def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
     dt = 0.001
@@ -162,8 +204,6 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
         create_sphere([placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random()), placement_range * (-1 + 2 * np.random.random())], size, color, np.abs(np.random.normal(avg_mass, sd_mass)), exclude=False)
     
     draw_axes(bounds)
-
-    external_forces = np.zeros((len(Body.objects), 3))
 
     # pfunc = "0.5*75*x**2+0.5*50*y**2+0.5*100*z**2"
     # pfunc = "m*9.8*y"
@@ -186,7 +226,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
         # get updated mass, positions, momentums
 
         cmd_valid = False
-        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.9999, bounds)
+        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.999, bounds)
         cmd_valid = True
 
         vis.poll_events()
@@ -211,7 +251,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds):
         time.sleep(dt)
     vis.destroy_window()
 
-class SimulationGUI:
+class SetUpGUI:
     def __init__(self, master):
         self.master = master
         self.master.title("Simulation Setup")
@@ -224,7 +264,7 @@ class SimulationGUI:
             "color_random": True,  # Color is random by default
             "ball_avg_mass": 1,  # Default ball mass
             "ball_sd_mass": 1,
-            "bounds": "-10, 10, -10, 10, -10, 10" # bounds
+            "bounds": "-10 10 -10 10 -10 10" # bounds
         }
 
         # Setup GUI elements
@@ -288,7 +328,7 @@ class SimulationGUI:
         self.variables["ball_sd_mass"] = float(self.mass_sd_entry.get())
         bounds_str = self.bounds_entry.get()
         # change bounds to a 6 tuple
-        bounds_list = bounds_str.split(',')
+        bounds_list = bounds_str.split(' ')
         for i in range(len(bounds_list)):
             bounds_list[i] = float(bounds_list[i])
         self.variables["bounds"] = tuple(bounds_list)
@@ -299,7 +339,7 @@ class SimulationGUI:
 
 def main():
     root = tk.Tk()
-    app = SimulationGUI(root)
+    app = SetUpGUI(root)
     root.mainloop()  # Run the GUI event loop
     if app.variables["N"] and app.variables["pfunc"]:
         run_viz(app.variables["pfunc"], app.variables["N"], app.variables["ball_size"], app.variables["color_random"], app.variables["ball_avg_mass"], app.variables["ball_sd_mass"], app.variables["bounds"])
