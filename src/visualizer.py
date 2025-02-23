@@ -186,7 +186,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge,
     global vis
     global cmd_valid
     global external_forces
-    placement_range = 5
+    placement_range = 10
     # create_sphere([1, 0, 0], 0.5, [1, 0, 0], 2, exclude = False)
     # create_sphere([0, 1, 0], 0.5, [0, 0, 1], 0.5, exclude=False)
     # create_sphere([0, 0, 1], 0.5, [0, 1, 0], 1, exclude=False)
@@ -224,7 +224,7 @@ def run_viz(pfunc, N, size, color_random, avg_mass, sd_mass, bounds, avg_charge,
         # get updated mass, positions, momentums
 
         cmd_valid = False
-        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.98, bounds, gravity)
+        dynam = dynamics(Body.dynamics_matrix, dt, gradV, external_forces, 0.0, bounds, gravity)
         cmd_valid = True
 
         vis.poll_events()

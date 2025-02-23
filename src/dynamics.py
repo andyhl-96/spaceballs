@@ -73,7 +73,7 @@ def dynamics(data_matrix: np.ndarray, dt: float, gradV: tuple, ext_force: np.nda
     # constants
     G = 6900
     ke = 690
-    r = 0.001
+    r = 0.0001
     km = r * ke
 
     px_vec = matrix @ px_vec + dp[:,0]
